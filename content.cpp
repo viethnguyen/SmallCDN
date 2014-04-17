@@ -31,3 +31,12 @@ const char * Content::get_content_name(int id){
 	return oss.str().c_str();
 }
 
+string Content::get_content_name_in_host(int hid, int cid){
+	Content c;
+	ostringstream dest;
+	dest << hid;
+	dest << "/";
+	string s(c.get_content_name(cid),4);
+	string destfile = dest.str() + s;
+	return destfile;
+}

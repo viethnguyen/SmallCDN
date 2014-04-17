@@ -24,6 +24,8 @@ void test_host(){
 	Host h(1);//create new host
 	h.assign_content(24);
 	h.assign_content(25);
+	h.assign_content(2);
+	h.delete_content(24);
 }
 int main(){
 	test_content();

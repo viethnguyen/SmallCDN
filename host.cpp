@@ -14,6 +14,7 @@
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
+#include <stdio.h>
 #include <istream>
 #include <fstream>
 #include <iterator>
@@ -45,11 +46,7 @@ void Host::assign_content(int cid){
 
 		//copy the content file into the folder
 		Content c;
-		ostringstream dest;
-		dest << id_;
-		dest << "/";
-		string s(c.get_content_name(cid),4);
-		string destfile = dest.str() + s;
+		string destfile = c.get_content_name_in_host(id_,cid);
 		copycontent(c.get_content_name(cid), destfile.c_str());
 	}
 
@@ -58,6 +55,11 @@ void Host::delete_content(int cid){
 		it = find(cids_.begin(), cids_.end(), cid);
 		if(it!=cids_.begin())
 			cids_.erase(it);
+
+		//Delete the content file
+		Content c;
+		string filename = c.get_content_name_in_host(id_,cid);
+		remove(filename.c_str());
 	}
 
 void Host::copycontent(const char *infile, const char *outfile){
