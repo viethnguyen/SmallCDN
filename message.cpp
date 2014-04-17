@@ -62,6 +62,10 @@ Packet *Message::make_response_packet(int CID, int HID, char *filename){
 	ifstream f1(filename);
 	f1.seekg(0, ios::end);
 	int len = (int)f1.tellg();
+	f1.seekg(0, f1.beg);
+	char *datachunk = new char[len];
+	f1.read(datachunk, len);
+	f1.close();
 
 	//Header
 	PacketHdr *hdr = response_packet->accessHeader();
@@ -71,6 +75,7 @@ Packet *Message::make_response_packet(int CID, int HID, char *filename){
 	hdr->setIntegerInfo(len, POS_SIZE);
 
 	// fill payload by content...
+	response_packet->fillPayload(len, datachunk);
 
 	return response_packet;
 }
