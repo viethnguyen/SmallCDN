@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <time.h>
 
 void test_message(){
 	/*
@@ -14,12 +15,16 @@ void test_message(){
 	*/
 }
 
-void test_content(){
+void gen_content(){
 	Content c;
-	c.gen_content(2,125);
-	c.gen_content(24,214);
-	//cout << c.get_content_name(234) << "\n";
+	srand(time(NULL));
+	for(int i = 0; i <=255; i++){
+		int size = rand()% 1500;
+		c.gen_content(i, size);
+	}
 }
+
+/*
 void test_host(){
 	Host h(1);//create new host
 	h.assign_content(24);
@@ -27,8 +32,8 @@ void test_host(){
 	h.assign_content(2);
 	h.delete_content(24);
 }
+*/
 int main(){
-	test_content();
-	test_host();
+	gen_content();
 	return 0;
 }

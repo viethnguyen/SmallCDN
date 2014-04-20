@@ -18,7 +18,9 @@ class Host{
 	int id_;
 	int rid_;	// router id
 	vector<int> cids_;	//content id list
-
+	int sendingporttorouter_;
+	int receivingportfromrouter_;
+	int routerreceivingport_;
 public:
 	Host(int id);
 	void assign_router(int rid);
@@ -26,6 +28,7 @@ public:
 	void delete_content(int cid);
 	void shutdown();
 	void copycontent(const char *infile, const char *outfile);
+	void send();
 };
 
 #endif /* HOST_H_ */
