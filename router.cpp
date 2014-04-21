@@ -28,16 +28,79 @@ void Router::calc_port_no(){
 	}
 	sendingporttohost_ = rid_ * 1000 + 999;
 	receivingportfromhost_ = rid_ * 1000 + 998;
+	hostsendingport_ = rid_ * 1000 + 997;
 	hostlisteningport_ = rid_ * 1000 + 996;
 }
 
-/**
- * @param argv[1] receiving port number
- * 			argv[2] destination address
- * 			argv[3] destination port number
- * 			argv[4] filename to save
- */
-void Router::receive(){
+void *send_message(void *threadarg){
+	try{
+		struct link_info *my_link;
+		my_link = (struct link_info *)threadarg;
+		int sending_port = my_link->sending_port;
+		int receiving_port = my_link->receiving_port;
+
+		//configure a sending port
+		const char* hname = "localhost";
+		Address * my_tx_addr = new Address(hname, (short)sending_port);
+		Address * dst_addr =  new Address(hname, (short)receiving_port);
+		mySendingPort *my_tx_port = new mySendingPort();
+		my_tx_port->setAddress(my_tx_addr);
+		my_tx_port->setRemoteAddress(dst_addr);
+		my_tx_port->init();
+
+		//TODO: flood message, forward packet...
+
+	}
+	catch(const char *reason ){
+	    cerr << "Exception:" << reason << endl;
+	    exit(-1);
+	}
+}
+
+void *receive_message(void *threadarg){
+	try{
+		struct link_info *my_link;
+		my_link = (struct link_info *) threadarg;
+		int sending_port = my_link->sending_port;
+		int receiving_port = my_link->receiving_port;
+
+		//configure receiving port
+		const char* hname = "localhost";
+		Address * my_addr = new Address(hname, (short)receiving_port);
+		LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
+		my_port->setAddress(my_addr);
+		my_port->init();
+
+		// TODO: update tables...
+
+	}
+	catch(const char *reason ){
+	    cerr << "Exception:" << reason << endl;
+	    exit(-1);
+	}
+}
+
+void Router::setup_link(){
+	//setup link with host
+	//TODO: spawn two threads: for sending to host and receiving from host
+	pthread_t t_sendtohost;
+	struct link_info l1;
+	l1.sending_port = sendingporttohost_;
+	l1.receiving_port = hostlisteningport_;
+	pthread_create(&t_sendtohost, NULL, &send_message, &l1);
+
+	pthread_t t_receivefromhost;
+	struct link_info l2;
+	l2.receiving_port = receivingportfromhost_;
+	l2.sending_port = hostsendingport_;
+	pthread_create(&t_receivefromhost, NULL, &receive_message, &l2);
+
+	//setup links with other neighbor routers
+	//TODO: spawn two threads: for sending to each neighboring router and receiving from it.
+
+}
+
+void Router::comm_with_host(){
 	try {
 	  const char* hname = "localhost";
 
@@ -48,7 +111,7 @@ void Router::receive(){
 	  my_port->setAddress(my_addr);
 	  my_port->init();
 
-	  //configure a sending port to send ACK
+	  //configure a sending port
 	  Address * my_tx_addr = new Address(hname, (short)sendingporttohost_);
 	  Address * dst_addr =  new Address(hname, (short)hostlisteningport_);
 	  mySendingPort *my_tx_port = new mySendingPort();
@@ -91,5 +154,5 @@ int main(){
 	r.calc_port_no();
 
 	// Test: receive from its host
-	r.receive();
+	r.comm_with_host();
 }

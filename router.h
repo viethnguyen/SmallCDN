@@ -22,13 +22,15 @@ class Router{
 	int sendingporttohost_;
 	int receivingportfromhost_;
 	int hostlisteningport_;
+	int hostsendingport_;
 	int hid_;		//host id, -1 if no exist
-
 public:
 	Router (int rd);
 	void assign_host(int hid);
 	void assign_nr(int rid); 	//assign neighbor router
 	void calc_port_no();
-	void receive();
+	void setup_link();
+	void comm_with_host();
+	void comm_with_router();
 };
 #endif /* ROUTER_H_ */

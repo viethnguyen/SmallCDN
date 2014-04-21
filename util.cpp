@@ -8,6 +8,8 @@
 #include <fstream>
 #include <time.h>
 
+using namespace std;
+
 void test_message(){
 	/*
 	Message m;
@@ -24,16 +26,35 @@ void gen_content(){
 	}
 }
 
-/*
-void test_host(){
-	Host h(1);//create new host
-	h.assign_content(24);
-	h.assign_content(25);
-	h.assign_content(2);
-	h.delete_content(24);
+void setup_topo(){
+	ifstream in("networktopo.txt");
+	if(in.is_open()){
+		int linkcount;
+		in >> linkcount;
+		vector<pair<int, int> > routerlinks;
+		for(int i = 0; i < linkcount; i++){
+			int node1, node2;
+			in >> node1 >> node2;
+			routerlinks.push_back(make_pair(node1, node2));
+		}
+		int nr;		//number of routers with host
+		in >> nr;
+		vector<pair<int, int> > routerhostlinks;	// link
+		for(int i = 0; i < nr; i++){
+			int router, host;
+			in >> router >> host;
+			routerhostlinks.push_back(make_pair(router,host));
+		}
+		in.close();
+	}
+	else{
+		cout << "Unable to open to network topology file";
+	}
+
 }
-*/
+
 int main(){
 	gen_content();
+	setup_topo();
 	return 0;
 }

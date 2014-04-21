@@ -23,6 +23,13 @@
 #  define INADDR_NONE (-1)
 #endif
 
+// VIET NGUYEN ADDED
+//structs used to pass arguments to thread
+struct link_info{
+	int sending_port;
+	int receiving_port;
+};
+
 
 /// A Packet Header class
 /**
