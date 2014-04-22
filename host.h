@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <sstream>
 #include <sys/stat.h>
+#include "common.h"
 using namespace std;
 
 class Host{
@@ -21,6 +22,13 @@ class Host{
 	int sendingporttorouter_;
 	int receivingportfromrouter_;
 	int routerreceivingport_;
+	int routersendingport_;
+//	void *send_message(void *threadarg);
+//	void *receive_message(void *threadarg);
+	pthread_t  hostthreads[2];
+	int threadcount;
+	bool is_done;		//flag to signal all threads of host shutting down
+	pthread_mutex_t mutex1 ;
 public:
 	Host(int id);
 	void assign_router(int rid);
@@ -28,6 +36,7 @@ public:
 	void delete_content(int cid);
 	void shutdown();
 	void copycontent(const char *infile, const char *outfile);
+	void setup_link();
 	void send();
 };
 

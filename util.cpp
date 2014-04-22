@@ -2,6 +2,7 @@
 #include "newport.h"
 #include "message.h"
 #include "host.h"
+#include "router.h"
 #include "content.h"
 #include <cstring>
 #include <iostream>
