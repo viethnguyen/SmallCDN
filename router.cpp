@@ -8,7 +8,7 @@
 #include "common.h"
 #include "newport.h"
 #include "message.h"
-
+#include "linkthread.h"
 using namespace std;
 
 Router::Router(){
@@ -39,109 +39,30 @@ void Router::calc_port_no(){
 	hostlisteningport_ = 10000 + rid_ * 1000 + 996;
 }
 
-void * send_message(void *threadarg){
-	try{
-		struct link_info *my_link;
-		my_link = (struct link_info *)threadarg;
-		int sending_port = my_link->sending_port;
-		int receiving_port = my_link->receiving_port;
-
-		//configure a sending port
-		const char* hname = "localhost";
-		Address * my_tx_addr = new Address(hname, (short)sending_port);
-		Address * dst_addr =  new Address(hname, (short)receiving_port);
-		mySendingPort *my_tx_port = new mySendingPort();
-		my_tx_port->setAddress(my_tx_addr);
-		my_tx_port->setRemoteAddress(dst_addr);
-		my_tx_port->init();
-
-		//TODO: flood message
-		Message *m = new Message();
-		Packet *update_packet = m->make_update_packet(1,2);
-		my_tx_port->sendPacket(update_packet);
-		my_tx_port->lastPkt_ = update_packet;
-		cout << "Update packet is sent from port " << sending_port << " to port " << receiving_port << "\n";
-		my_tx_port->timer_.startTimer(2.5);
-
-		//TODO: forward packets
-
-	}
-	catch(const char *reason ){
-	    cerr << "Exception:" << reason << endl;
-	    exit(-1);
-	}
-}
-
-void *receive_message(void *threadarg){
-	try{
-		struct link_info *my_link;
-		my_link = (struct link_info *) threadarg;
-		int sending_port = my_link->sending_port;
-		int receiving_port = my_link->receiving_port;
-
-		//configure receiving port
-		const char* hname = "localhost";
-		Address * my_addr = new Address(hname, (short)receiving_port);
-		LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
-		my_port->setAddress(my_addr);
-		my_port->init();
-
-		Packet *p;
-		while (1)
-		{
-			p = my_port->receivePacket();
-			if(p!=NULL){
-				cout << "Receive a message from port " << sending_port << " in port " << receiving_port << "\n";
-			}
-		}
-
-		// TODO: update tables...
-
-	}
-	catch(const char *reason ){
-	    cerr << "Exception:" << reason << endl;
-	    exit(-1);
-	}
-}
-
 void Router::setup_link(){
-	//setup link with host
-	pthread_t t_sendtohost;
-	struct link_info l1;
-	l1.sending_port = sendingporttohost_;
-	l1.receiving_port = hostlisteningport_;
-	pthread_create(&t_sendtohost, NULL, &send_message, &l1);
-	cout << "created a thread to send from port " << l1.sending_port << " to port " << l1.receiving_port << "\n";
-	//routerthreads[threadcount ++] = t_sendtohost;
 
-	pthread_t t_receivefromhost;
-	struct link_info l2;
-	l2.receiving_port = receivingportfromhost_;
-	l2.sending_port = hostsendingport_;
-	pthread_create(&t_receivefromhost, NULL, &receive_message, &l2);
-	cout << "created a thread to receive from port " << l2.sending_port << " in port " << l2.receiving_port << "\n";
-	//routerthreads[threadcount ++] = t_receivefromhost;
+	linkthread sh(sendingporttohost_, hostlisteningport_);
+	sh.setmode(0);
+	sh.StartInternalThread();
+	cout << "[CREATE] a thread to send from port " << sendingporttohost_ << " to port " << hostlisteningport_ << "\n";
+	linkthread rh(hostsendingport_, receivingportfromhost_ );
+	rh.setmode(1);
+	rh.StartInternalThread();
+	cout << "[CREATE] a thread to receive from port " << hostsendingport_ << " in port " << receivingportfromhost_ << "\n";
 
 	//setup links with other neighbor routers
 	int n = sendingportno_.size();
-
-	for(int i = 0; i < n; i++){
-		pthread_t t_sendtorouter;
-		struct link_info lr1;
-		lr1.sending_port = sendingportno_[i];
-		lr1.receiving_port = farrouterreceivingportno_[i];
-		pthread_create(&t_sendtorouter, NULL, &send_message, &lr1 );
-		cout << "created a thread to send from port " << lr1.sending_port << " to port " << lr1.receiving_port << "\n";
-		//routerthreads[threadcount ++ ] = t_sendtorouter;
-
-		pthread_t t_receivefromrouter;
-		struct link_info lr2;
-		lr2.sending_port = farroutersendingportno_[i];
-		lr2.receiving_port = receivingportno_[i];
-		pthread_create(&t_receivefromrouter, NULL, &receive_message, &lr2);
-		cout << "created a thread to receive from port " << lr2.sending_port << " in port " << lr2.receiving_port << "\n";
-		//routerthreads[threadcount ++] = t_receivefromrouter;
+	for(int i = 0; i < n ; i++){
+		linkthread s(sendingportno_[i], farrouterreceivingportno_[i]);
+		s.setmode(0);
+		s.StartInternalThread();
+		cout << "[CREATE] a thread to send from port " << sendingportno_[i] << " to port " << farrouterreceivingportno_[i] << "\n";
+		linkthread r(farroutersendingportno_[i], receivingportno_[i]);
+		r.setmode(1);
+		r.StartInternalThread();
+		cout << "[CREATE] a thread to receive from port " << farroutersendingportno_[i] << " in port " << receivingportno_[i]<< "\n";
 	}
+
 }
 
 void Router::shutdown(){

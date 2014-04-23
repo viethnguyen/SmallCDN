@@ -1,3 +1,7 @@
+#ifndef NEWPORT_H_
+#define NEWPORT_H_
+
+
 #include "common.h"
 #include <iostream>
 using namespace std;
@@ -24,3 +28,5 @@ private:
 public:
   Packet * lastPkt_;
 };
+
+#endif /*NEWPORT_H_*/

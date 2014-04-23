@@ -34,7 +34,7 @@ public:
 		  return result;
 	}
 	void read_topo(){
-		ifstream in("networktopo.txt");
+		ifstream in("topo1.txt");
 		if(in.is_open()){
 			int routercount;
 			string line0;
