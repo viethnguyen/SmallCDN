@@ -39,10 +39,10 @@ Host::Host(int id){
 
 void Host::assign_router(int rid){
 		rid_ = rid;
-		sendingporttorouter_ = rid * 1000 + 997;
-		receivingportfromrouter_ = rid * 1000 + 996;
-		routerreceivingport_ = rid * 1000 + 998;
-		routersendingport_ = rid * 1000 + 999;
+		sendingporttorouter_ = 10000 + rid * 1000 + 997;
+		receivingportfromrouter_ = 10000 + rid * 1000 + 996;
+		routerreceivingport_ = 10000 + rid * 1000 + 998;
+		routersendingport_ = 10000 + rid * 1000 + 999;
 	}
 
 void Host::assign_content(int cid){

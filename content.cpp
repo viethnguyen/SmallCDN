@@ -26,7 +26,7 @@ void Content::gen_content(int id, int size){
 
 const char * Content::get_content_name(int id){
 	ostringstream oss;
-	oss << "c";
+	oss << "content_";
 	oss << id;
 	return oss.str().c_str();
 }

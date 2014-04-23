@@ -385,7 +385,7 @@ void SendingPort::init()
   struct sockaddr* addr = setSockAddress(emptyAddr, &mySockAddress_);
   if (  bind(sockfd_, addr, sizeof(struct sockaddr_in))  < 0 ){
     perror("bind");
-    throw "Scoket Bind Error";
+    throw "Socket Bind Error";
   }
    
   if (bcastflag_ == 1) 
@@ -461,7 +461,7 @@ void ReceivingPort::init()
   Address *emptyAddr = new Address("", myaddr_.getPort());
   struct sockaddr* addr = setSockAddress(emptyAddr, &mySockAddress_);
   if (  bind(sockfd_, addr, sizeof(struct sockaddr_in))  < 0 ){
-    throw "Scoket Bind Error occured in an UDP receiver";
+    throw "Socket Bind Error occured in an UDP receiver";
   }
   //cout << "binding to port: " << myaddr_.getPort() << "......" << endl;
   // needs a dummy buffer for storing packets

@@ -27,35 +27,7 @@ void gen_content(){
 	}
 }
 
-void setup_topo(){
-	ifstream in("networktopo.txt");
-	if(in.is_open()){
-		int linkcount;
-		in >> linkcount;
-		vector<pair<int, int> > routerlinks;
-		for(int i = 0; i < linkcount; i++){
-			int node1, node2;
-			in >> node1 >> node2;
-			routerlinks.push_back(make_pair(node1, node2));
-		}
-		int nr;		//number of routers with host
-		in >> nr;
-		vector<pair<int, int> > routerhostlinks;	// link
-		for(int i = 0; i < nr; i++){
-			int router, host;
-			in >> router >> host;
-			routerhostlinks.push_back(make_pair(router,host));
-		}
-		in.close();
-	}
-	else{
-		cout << "Unable to open to network topology file";
-	}
-
-}
-
 int main(){
 	gen_content();
-	setup_topo();
 	return 0;
 }

@@ -22,4 +22,6 @@
 
 host
 router
+routercontroller
 util
+content_*

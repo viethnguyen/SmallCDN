@@ -32,7 +32,9 @@ class Router{
 	pthread_t routerthreads [512];
 	int threadcount;
 public:
+	Router ();
 	Router (int rd);
+	void set_id(int rid);
 	void assign_host(int hid);
 	void assign_nr(int rid); 	//assign neighbor router
 	void calc_port_no();

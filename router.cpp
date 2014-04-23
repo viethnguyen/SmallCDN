@@ -11,7 +11,13 @@
 
 using namespace std;
 
+Router::Router(){
+	rid_ = -1;
+}
 Router::Router (int rid){
+	rid_ = rid;
+}
+void Router::set_id(int rid){
 	rid_ = rid;
 }
 void Router::assign_host(int hid){
@@ -22,15 +28,15 @@ void Router::assign_nr(int rid){
 }
 void Router::calc_port_no(){
 	for(int i = 0; i < nrids_.size(); i++){
-		sendingportno_.push_back(rid_*1000 + nrids_[i]);
-		receivingportno_.push_back(rid_ * 1000 + 500 + nrids_[i]);
-		farroutersendingportno_.push_back(nrids_[i] * 1000 + rid_ );
-		farrouterreceivingportno_.push_back(nrids_[i] * 1000 + 500 + rid_);
+		sendingportno_.push_back(10000 + rid_*1000 + nrids_[i]);
+		receivingportno_.push_back(10000 + rid_*1000 + 500 + nrids_[i]);
+		farroutersendingportno_.push_back(10000 + nrids_[i] * 1000 + rid_ );
+		farrouterreceivingportno_.push_back(10000 + nrids_[i] * 1000 + 500 + rid_ );
 	}
-	sendingporttohost_ = rid_ * 1000 + 999;
-	receivingportfromhost_ = rid_ * 1000 + 998;
-	hostsendingport_ = rid_ * 1000 + 997;
-	hostlisteningport_ = rid_ * 1000 + 996;
+	sendingporttohost_ = 10000 +rid_ * 1000 + 999;
+	receivingportfromhost_ = 10000 + rid_ * 1000 + 998;
+	hostsendingport_ = 10000 + rid_ * 1000 + 997;
+	hostlisteningport_ = 10000 + rid_ * 1000 + 996;
 }
 
 void * send_message(void *threadarg){
@@ -145,6 +151,10 @@ void Router::shutdown(){
 //	}
 }
 
+/*
+ * FOR TEST
+ */
+/*
 int main(){
 	int rid, hid, nrid;
 	cout << "Enter router id: ";
@@ -166,3 +176,4 @@ int main(){
 		//Do nothing, let the processes do their jobs
 	}
 }
+*/
