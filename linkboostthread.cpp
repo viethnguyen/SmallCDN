@@ -1,29 +1,33 @@
 /*
- * linkthread.cpp
+ * linkboostthread.cpp
  *
- *  Created on: Apr 23, 2014
+ *  Created on: Apr 24, 2014
  *      Author: vietnguyen
  */
-#include "linkthread.h"
+
+#include <iostream>
+#include <boost/thread.hpp>
+#include <boost/date_time.hpp>
+#include "linkboostthread.h"
 #include "newport.h"
 
-void linkthread::InternalThreadEntry(){
+void linkboostthread::run(){
 	if(_mode == 0){
-		send_message(_srcport, _dstport);
+		boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&linkboostthread::send_message, this)));
 	}
 	else {
-		receive_message(_srcport, _dstport);
+		boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&linkboostthread::receive_message, this)));
 	}
 }
 
-void linkthread::send_message(int srcport, int dstport){
+void linkboostthread::send_message(){
 	try{
-			cout << "[SEND THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+			cout << "[SEND THREAD] From: " << _srcport << "(" << (short)_srcport << "). To: " << _dstport << "(" << (short)_dstport << ")\n";
 
 			//configure a sending port
 			const char* hname = "localhost";
-			Address * my_tx_addr = new Address(hname, (short)srcport);
-			Address * dst_addr =  new Address(hname, (short)dstport);
+			Address * my_tx_addr = new Address(hname, (short)_srcport);
+			Address * dst_addr =  new Address(hname, (short)_dstport);
 			mySendingPort *my_tx_port = new mySendingPort();
 			my_tx_port->setAddress(my_tx_addr);
 			my_tx_port->setRemoteAddress(dst_addr);
@@ -46,13 +50,13 @@ void linkthread::send_message(int srcport, int dstport){
 		}
 }
 
-void linkthread::receive_message(int srcport, int dstport){
+void linkboostthread::receive_message(){
 	try{
-				cout << "[RECEIVE THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+				cout << "[RECEIVE THREAD]  From: " << _srcport << "(" << (short)_srcport << "). To: " << _dstport << "(" << (short)_dstport << ")\n";
 
 				//configure receiving port
 				const char* hname = "localhost";
-				Address * my_addr = new Address(hname, (short)dstport);
+				Address * my_addr = new Address(hname, (short)_dstport);
 				LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
 				my_port->setAddress(my_addr);
 				my_port->init();

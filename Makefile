@@ -2,6 +2,16 @@
 # Specify the compiler
 CC = g++
 
+# Specify Boost build folder
+BOOST_ROOT=boost_build
+BOOST_INCLUDE_DIR=$(BOOST_ROOT)/include
+BOOST_LIB_DIR=$(BOOST_ROOT)/lib
+BOOST_LINK_FLAGS=-lboost_thread-mt
+BOOST_LIB_THREAD=boost_thread
+BOOST_LIB_CHRONO=boost_chrono
+BOOST_LIB_DATETIME=boost_date_time
+BOOST_LIB_SYSTEM=boost_system
+
 #CCOPTS = -ansi -pedantic -Wall -g
 CCOPTS = -g -Wall
 LIBS = -pthread
@@ -18,15 +28,18 @@ message.o: message.h message.cpp
 host.o: host.h host.cpp
 	$(CC) $(CCOPTS) -c host.cpp
 	
-router.o: router.h router.cpp linkthread.o
+router.o: router.h router.cpp linkboostthread.o
 	$(CC) $(CCOPTS) -c router.cpp
 	
 content.o: content.h content.cpp
 	$(CC) $(CCOPTS) -c content.cpp
 
-linkthread.o: linkthread.h linkthread.cpp
-	$(CC) $(CCOPTS) $(LIBS) -c linkthread.cpp
+#linkthread.o: linkthread.h linkthread.cpp
+#	$(CC) $(CCOPTS) $(LIBS) -c linkthread.cpp
 
+linkboostthread.o: linkboostthread.h linkboostthread.cpp
+	$(CC) $(CCOPTS) $(LIBS) -I $(BOOST_INCLUDE_DIR) -c linkboostthread.cpp -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
+	
 host: host.cpp common.o message.o content.o
 	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o host.cpp -o host
 	
@@ -34,8 +47,8 @@ host: host.cpp common.o message.o content.o
 #router: router.cpp common.o message.o content.o sendthread.o receivethread.o
 #	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o sendthread.o receivethread.o router.cpp -o router
 	
-routercontroller: routercontroller.cpp common.o message.o content.o router.o linkthread.o
-	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o router.o linkthread.o routercontroller.cpp -o routercontroller
+routercontroller: routercontroller.cpp common.o message.o content.o router.o linkboostthread.o
+	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o router.o linkboostthread.o routercontroller.cpp -o routercontroller -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 	
 util: util.cpp common.o message.o content.o
 	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o util.cpp -o util

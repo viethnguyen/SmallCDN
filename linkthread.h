@@ -11,13 +11,16 @@
 #include "common.h"
 #include "message.h"
 #include <pthread.h>
+#include <iostream>
 
+using namespace std;
 class linkthread {
 public:
 	linkthread() {/* empty */}
 	linkthread(int srcport, int dstport){
 		_srcport = srcport;
 		_dstport = dstport;
+		cout << "[THREAD]Init..." << _srcport << " " << _dstport << "\n";
 	}
 	~linkthread() {/* empty */}
 
@@ -41,8 +44,8 @@ public:
    }
 
 protected:
-   void send_message();
-   void receive_message();
+   void send_message(int srcport, int dstport);
+   void receive_message(int srcport, int dstport);
 	void InternalThreadEntry();
 private:
 	int _srcport;

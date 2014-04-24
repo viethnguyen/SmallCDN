@@ -8,7 +8,7 @@
 #include "common.h"
 #include "newport.h"
 #include "message.h"
-#include "linkthread.h"
+#include "linkboostthread.h"
 using namespace std;
 
 Router::Router(){
@@ -41,25 +41,23 @@ void Router::calc_port_no(){
 
 void Router::setup_link(){
 
-	linkthread sh(sendingporttohost_, hostlisteningport_);
-	sh.setmode(0);
-	sh.StartInternalThread();
+	linkboostthread sh(sendingporttohost_, hostlisteningport_, 0);
+	sh.run();
 	cout << "[CREATE] a thread to send from port " << sendingporttohost_ << " to port " << hostlisteningport_ << "\n";
-	linkthread rh(hostsendingport_, receivingportfromhost_ );
-	rh.setmode(1);
-	rh.StartInternalThread();
+
+	linkboostthread rh(hostsendingport_, receivingportfromhost_, 1);
+	rh.run();
 	cout << "[CREATE] a thread to receive from port " << hostsendingport_ << " in port " << receivingportfromhost_ << "\n";
 
 	//setup links with other neighbor routers
 	int n = sendingportno_.size();
 	for(int i = 0; i < n ; i++){
-		linkthread s(sendingportno_[i], farrouterreceivingportno_[i]);
-		s.setmode(0);
-		s.StartInternalThread();
+		linkboostthread s(sendingportno_[i], farrouterreceivingportno_[i], 0);
+		s.run();
 		cout << "[CREATE] a thread to send from port " << sendingportno_[i] << " to port " << farrouterreceivingportno_[i] << "\n";
-		linkthread r(farroutersendingportno_[i], receivingportno_[i]);
-		r.setmode(1);
-		r.StartInternalThread();
+
+		linkboostthread r(farroutersendingportno_[i], receivingportno_[i], 1);
+		r.run();
 		cout << "[CREATE] a thread to receive from port " << farroutersendingportno_[i] << " in port " << receivingportno_[i]<< "\n";
 	}
 
