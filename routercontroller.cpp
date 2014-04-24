@@ -89,7 +89,9 @@ public:
 int main(){
 	routercontroller rc;
 	rc.read_topo();
-	while (1);
+	while (1){
+
+	}
 
 	return 0;
 }

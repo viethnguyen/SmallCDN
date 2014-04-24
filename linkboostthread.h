@@ -12,8 +12,13 @@
 #include "message.h"
 #include <pthread.h>
 #include <iostream>
+#include <boost/thread.hpp>
+#include <boost/date_time.hpp>
+
 
 class linkboostthread{
+private:
+	boost::thread m_thread;
 	int _srcport;
 	int _dstport;
 	int _mode;	//0: sending, 1: receiving
@@ -24,8 +29,9 @@ public:
 		_mode = mode;
 	}
 	void run();
-	void send_message();
-	void receive_message();
+	void join();
+	void send_message(int srcport, int dstport);
+	void receive_message(int srcport, int dstport);
 
 };
 
