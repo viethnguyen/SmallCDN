@@ -26,6 +26,7 @@ Host::Host(int id){
 		rid_ = -1;
 		//create folder
 		stringstream strs;
+		strs << "host";
 		strs << id;
 		string temp_str = strs.str();
 		char const* foldername = temp_str.c_str();

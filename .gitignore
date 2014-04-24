@@ -26,3 +26,5 @@ routercontroller
 util
 content_*
 boost_build/
+host*/
+router*/
