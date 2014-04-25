@@ -41,22 +41,26 @@ void Router::calc_port_no(){
 
 void Router::setup_link(){
 
-	linkboostthread sh(sendingporttohost_, hostlisteningport_, 0);
+	//linkboostthread sh(rid_, sendingporttohost_, hostlisteningport_, linkboostthread.MODE_SEND, linkboostthread.NODE_ROUTER);
+	linkboostthread sh(rid_, sendingporttohost_, hostlisteningport_, 0, 0);
 	sh.run();
 	cout << "[CREATE] a thread to send from port " << sendingporttohost_ << " to port " << hostlisteningport_ << "\n";
 
-	linkboostthread rh(hostsendingport_, receivingportfromhost_, 1);
+	//linkboostthread rh(rid_, hostsendingport_, receivingportfromhost_, linkboostthread.MODE_RECEIVE, linkboostthread.NODE_ROUTER);
+	linkboostthread rh(rid_, hostsendingport_, receivingportfromhost_, 1, 0);
 	rh.run();
 	cout << "[CREATE] a thread to receive from port " << hostsendingport_ << " in port " << receivingportfromhost_ << "\n";
 
 	//setup links with other neighbor routers
 	int n = sendingportno_.size();
 	for(int i = 0; i < n ; i++){
-		linkboostthread s(sendingportno_[i], farrouterreceivingportno_[i], 0);
+		//linkboostthread s(rid_, sendingportno_[i], farrouterreceivingportno_[i],linkboostthread.MODE_SEND, linkboostthread.NODE_ROUTER);
+		linkboostthread s(rid_, sendingportno_[i], farrouterreceivingportno_[i],0, 0);
 		s.run();
 		cout << "[CREATE] a thread to send from port " << sendingportno_[i] << " to port " << farrouterreceivingportno_[i] << "\n";
 
-		linkboostthread r(farroutersendingportno_[i], receivingportno_[i], 1);
+		//linkboostthread r(rid_, farroutersendingportno_[i], receivingportno_[i], linkboostthread.MODE_RECEIVE, linkboostthread.NODE_ROUTER);
+		linkboostthread r(rid_, farroutersendingportno_[i], receivingportno_[i], 1, 0);
 		r.run();
 		cout << "[CREATE] a thread to receive from port " << farroutersendingportno_[i] << " in port " << receivingportno_[i]<< "\n";
 	}

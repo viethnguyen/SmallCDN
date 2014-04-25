@@ -38,6 +38,13 @@ public:
 	Packet *make_request_packet(int CID, int HID);
 	Packet *make_response_packet(int CID, int HID, char *filename);
 	Packet *make_update_packet(int CID, int nhops);
+	int get_packet_type(Packet *p);
+	int get_packet_CID(Packet *p);
+	int get_packet_HID(Packet *p);
+	int get_packet_HOPS(Packet *p);
+	int get_packet_size(Packet *p);
+
+
 
 	// OBSOLETE !!
 	//define message format - byte position in the header of each field

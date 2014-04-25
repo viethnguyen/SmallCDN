@@ -84,15 +84,16 @@ void Host::copycontent(const char *infile, const char *outfile){
 
 void Host::shutdown(){
 	//signaling all the threads
-
 }
 
 void Host::setup_link(){
-	linkboostthread s(sendingporttorouter_, routerreceivingport_, 0);
+	//linkboostthread s(id_,sendingporttorouter_, routerreceivingport_, linkboostthread.MODE_SEND, linkboostthread.NODE_HOST);
+	linkboostthread s(id_,sendingporttorouter_, routerreceivingport_, 0, 1);
 	s.run();
 	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";
 
-	linkboostthread r(routersendingport_, receivingportfromrouter_, 1);
+	//linkboostthread r(id_, routersendingport_, receivingportfromrouter_, linkboostthread.MODE_RECEIVE, linkboostthread.NODE_HOST);
+	linkboostthread r(id_, routersendingport_, receivingportfromrouter_, 1, 1);
 	r.run();
 	cout << "[CREATE] a thread to receive from port " << routersendingport_ << " in port " << receivingportfromrouter_ << "\n";
 }

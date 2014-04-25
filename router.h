@@ -13,9 +13,13 @@
 #include <sstream>
 #include <sys/stat.h>
 #include "common.h"
+#include "prt.h"
+#include "rt.h"
+
 using namespace std;
 
 class Router{
+private:
 	int rid_;	// router id
 	vector<int> nrids_;	//neighbor router ids
 	vector<int> sendingportno_;		//sending port to other routers, map to interface
@@ -26,8 +30,9 @@ class Router{
 	int receivingportfromhost_;
 	int hostlisteningport_;
 	int hostsendingport_;
-	int hid_;		//host id, -1 if no exist
-	int threadcount;
+	int hid_;
+	PRT prt;	//Pending request table
+	RT rt;		//Routing table
 public:
 	Router ();
 	Router (int rd);

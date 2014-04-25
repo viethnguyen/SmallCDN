@@ -95,6 +95,32 @@ Packet *Message::make_update_packet(int CID, int nhops){
 	return update_packet;
 }
 
+int Message::get_packet_type(Packet *p){
+	PacketHdr *hdr = p->accessHeader();
+	return (int) hdr->getShortIntegerInfo(POS_TYPE);
+}
+
+int Message::get_packet_CID(Packet *p){
+	PacketHdr *hdr = p->accessHeader();
+	return (int) hdr->getShortIntegerInfo(POS_CID);
+}
+
+int Message::get_packet_HID(Packet *p){
+	PacketHdr *hdr = p->accessHeader();
+	return (int) hdr->getShortIntegerInfo(POS_HID);
+}
+
+int Message::get_packet_HOPS(Packet *p){
+	PacketHdr *hdr = p->accessHeader();
+	return (int) hdr->getShortIntegerInfo(POS_HOPS);
+}
+
+int Message::get_packet_size(Packet *p){
+	PacketHdr *hdr = p->accessHeader();
+	return (int) hdr->getShortIntegerInfo(POS_SIZE);
+
+}
+
 /*************************************
  ****** OBSOLETE
  * *************************************/

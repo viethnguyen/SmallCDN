@@ -34,6 +34,12 @@ router.o: router.h router.cpp linkboostthread.o
 content.o: content.h content.cpp
 	$(CC) $(CCOPTS) -c content.cpp
 
+prt.o: prt.h prt.cpp
+	$(CC) $(CCOPTS) -c prt.cpp 
+	
+rt.o: rt.h rt.cpp
+	$(CC) $(CCOPTS) -c rt.cpp
+
 #linkthread.o: linkthread.h linkthread.cpp
 #	$(CC) $(CCOPTS) $(LIBS) -c linkthread.cpp
 
@@ -47,8 +53,8 @@ host: host.h host.cpp common.o message.o content.o linkboostthread.o
 #router: router.cpp common.o message.o content.o sendthread.o receivethread.o
 #	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o sendthread.o receivethread.o router.cpp -o router
 	
-routercontroller: routercontroller.cpp common.o message.o content.o router.o linkboostthread.o
-	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o router.o linkboostthread.o routercontroller.cpp -o routercontroller -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
+routercontroller: routercontroller.cpp common.o message.o content.o router.o linkboostthread.o prt.o rt.o
+	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o router.o linkboostthread.o prt.o rt.o routercontroller.cpp -o routercontroller -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 	
 util: util.cpp common.o message.o content.o
 	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o util.cpp -o util
