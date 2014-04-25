@@ -38,6 +38,5 @@ public:
 	void setup_link();
 	void comm_with_host();
 	void shutdown();
-	void comm_with_router();
 };
 #endif /* ROUTER_H_ */
