@@ -23,12 +23,6 @@ class Host{
 	int receivingportfromrouter_;
 	int routerreceivingport_;
 	int routersendingport_;
-//	void *send_message(void *threadarg);
-//	void *receive_message(void *threadarg);
-	pthread_t  hostthreads[2];
-	int threadcount;
-	bool is_done;		//flag to signal all threads of host shutting down
-	pthread_mutex_t mutex1 ;
 public:
 	Host(int id);
 	void assign_router(int rid);
@@ -37,7 +31,6 @@ public:
 	void shutdown();
 	void copycontent(const char *infile, const char *outfile);
 	void setup_link();
-	void send();
 };
 
 #endif /* HOST_H_ */

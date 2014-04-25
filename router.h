@@ -27,11 +27,6 @@ class Router{
 	int hostlisteningport_;
 	int hostsendingport_;
 	int hid_;		//host id, -1 if no exist
-//	void *send_message(void *threadarg);
-//	void *receive_message(void *threadarg);
-//	static void *send_message_helper(void *context);
-//	static void *receive_message_helper(void *context);
-	pthread_t routerthreads [512];
 	int threadcount;
 public:
 	Router ();

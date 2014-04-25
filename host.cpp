@@ -10,6 +10,7 @@
 #include "message.h"
 #include "host.h"
 #include "content.h"
+#include "linkboostthread.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -32,10 +33,6 @@ Host::Host(int id){
 		char const* foldername = temp_str.c_str();
 		mkdir(foldername, S_IRWXU|S_IRGRP|S_IXGRP);
 
-		//init
-		is_done = false;
-		mutex1 = PTHREAD_MUTEX_INITIALIZER;
-		threadcount = 0;
 	}
 
 void Host::assign_router(int rid){
@@ -88,150 +85,18 @@ void Host::copycontent(const char *infile, const char *outfile){
 void Host::shutdown(){
 	//signaling all the threads
 
-
-}
-
-void * send_message(void *threadarg){
-	try{
-		struct link_info *my_link;
-		my_link = (struct link_info *)threadarg;
-		int sending_port = my_link->sending_port;
-		int receiving_port = my_link->receiving_port;
-
-		//configure a sending port
-		const char* hname = "localhost";
-		Address * my_tx_addr = new Address(hname, (short)sending_port);
-		Address * dst_addr =  new Address(hname, (short)receiving_port);
-		mySendingPort *my_tx_port = new mySendingPort();
-		my_tx_port->setAddress(my_tx_addr);
-		my_tx_port->setRemoteAddress(dst_addr);
-		my_tx_port->init();
-
-		//TODO: flood message
-		Message *m = new Message();
-		Packet *update_packet = m->make_update_packet(1,2);
-		my_tx_port->sendPacket(update_packet);
-		my_tx_port->lastPkt_ = update_packet;
-		cout << "Update packet is sent from port " << sending_port << " to port " << receiving_port << "\n";
-		my_tx_port->timer_.startTimer(2.5);
-
-		//TODO: send request
-
-	}
-	catch(const char *reason ){
-	    cerr << "Exception:" << reason << endl;
-	    exit(-1);
-	}
-}
-
-void * receive_message(void *threadarg){
-	try{
-		struct link_info *my_link;
-		my_link = (struct link_info *) threadarg;
-		int sending_port = my_link->sending_port;
-		int receiving_port = my_link->receiving_port;
-
-		//configure receiving port
-		const char* hname = "localhost";
-		Address * my_addr = new Address(hname, (short)receiving_port);
-		LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
-		my_port->setAddress(my_addr);
-		my_port->init();
-
-		// TODO: get file...
-		Packet *p;
-		while (1)
-		{
-			p = my_port->receivePacket();
-			if(p!=NULL){
-				cout << "Receive a message from port " << sending_port << " in port " << receiving_port << "\n";
-			}
-		}
-	}
-	catch(const char *reason ){
-	    cerr << "Exception:" << reason << endl;
-	    exit(-1);
-	}
 }
 
 void Host::setup_link(){
-	//setup link with router
-	pthread_t t_sendtorouter;
-	struct link_info l1;
-	l1.sending_port = sendingporttorouter_;
-	l1.receiving_port = routerreceivingport_;
-	pthread_create(&t_sendtorouter, NULL, send_message, &l1);
-	//hostthreads[threadcount++] = t_sendtorouter;
+	linkboostthread s(sendingporttorouter_, routerreceivingport_, 0);
+	s.run();
+	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";
 
-	pthread_t t_receivefromrouter;
-	struct link_info l2;
-	l2.receiving_port = receivingportfromrouter_;
-	l2.sending_port = routersendingport_;
-	pthread_create(&t_receivefromrouter, NULL, receive_message, &l2);
-	//hostthreads[threadcount++] = t_receivefromrouter;
+	linkboostthread r(routersendingport_, receivingportfromrouter_, 1);
+	r.run();
+	cout << "[CREATE] a thread to receive from port " << routersendingport_ << " in port " << receivingportfromrouter_ << "\n";
 }
 
-int sendingporttorouter_;
-int receivingportfromrouter_;
-int routerreceivingport_;
-
-void Host::send(){
-	 try {
-
-	  const char* hname = "localhost";
-	  Address * my_tx_addr = new Address(hname, (short)sendingporttorouter_);
-
-	  //configure sending port
-	  Address * dst_addr =  new Address(hname, (short)routerreceivingport_);
-	  mySendingPort *my_port = new mySendingPort();
-	  my_port->setAddress(my_tx_addr);
-	  my_port->setRemoteAddress(dst_addr);
-	  my_port->init();
-
-	  //configure receiving port to listen to ACK frames
-	  Address * my_rx_addr = new Address(hname, (short)receivingportfromrouter_);
-	  LossyReceivingPort *my_rx_port = new LossyReceivingPort(0.2);
-	  my_rx_port->setAddress(my_rx_addr);
-	  my_rx_port->init();
-
-	  //create a single packet
-	  Packet * my_packet;
-	  my_packet = new Packet();
-	  my_packet->setPayloadSize(100);
-	  PacketHdr *hdr = my_packet->accessHeader();
-	  hdr->setOctet('D',0);
-	  hdr->setOctet('A',1);
-	  hdr->setOctet('T',2);
-	  hdr->setIntegerInfo(1,3);
-
-	  //init a file transfer session
-	  Message *m = new Message();
-	  Packet *update_packet = m->make_update_packet(1,0);
-
-	  my_port->sendPacket(update_packet);
-	  my_port->lastPkt_ = update_packet;
-	  cout << " Update packet is sent!" <<endl;
-	  my_port->setACKflag(false);
-	  //schedule retransmit
-	  my_port->timer_.startTimer(2.5);
-
-	  cout << "begin waiting for ACK..." <<endl;
-	  Packet *pAck;
-	  while (!my_port->isACKed()){
-	        pAck = my_rx_port->receivePacket();
-
-	        if (pAck!= NULL)
-	        {
-		     my_port->setACKflag(true);
-		     my_port->timer_.stopTimer();
-	        }
-	  };
-
-	 } catch (const char *reason ) {
-	    cerr << "Exception:" << reason << endl;
-	    exit(-1);
-	  }
-}
 int main(){
 	int hid, rid, cid;
 	cout << "Enter host ID: ";

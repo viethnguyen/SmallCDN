@@ -40,8 +40,8 @@ content.o: content.h content.cpp
 linkboostthread.o: linkboostthread.h linkboostthread.cpp
 	$(CC) $(CCOPTS) $(LIBS) -I $(BOOST_INCLUDE_DIR) -c linkboostthread.cpp -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 	
-host: host.cpp common.o message.o content.o
-	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o host.cpp -o host
+host: host.h host.cpp common.o message.o content.o linkboostthread.o
+	$(CC) $(CCOPTS) $(LIBS) -I $(BOOST_INCLUDE_DIR) common.o message.o content.o  linkboostthread.o host.cpp -o host -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 	
 	
 #router: router.cpp common.o message.o content.o sendthread.o receivethread.o
