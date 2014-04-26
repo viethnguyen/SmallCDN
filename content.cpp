@@ -11,12 +11,12 @@
 #include <stdlib.h>
 #include <fstream>
 #include <sstream>
-
+#include <iostream>
 using namespace std;
 
 void Content::gen_content(int id, int size){
 	srand(time(NULL));
-	ofstream file(get_content_name(id));
+	ofstream file(get_content_name(id).c_str());
 	for(int i = 0; i < size; i++){
 		int value = rand()%9;
 		file << value;
@@ -24,19 +24,23 @@ void Content::gen_content(int id, int size){
 	file.close();
 }
 
-const char * Content::get_content_name(int id){
+string Content::get_content_name(int id){
 	ostringstream oss;
 	oss << "content_";
 	oss << id;
-	return oss.str().c_str();
+	cout << oss.str()  << "\n";
+	return oss.str();
 }
 
 string Content::get_content_name_in_host(int hid, int cid){
 	Content c;
 	ostringstream dest;
+	dest << "host";
 	dest << hid;
 	dest << "/";
-	string s(c.get_content_name(cid),4);
+	cout << dest.str() << "\n";
+	string s = c.get_content_name(cid);
+	cout << s  << "\n";
 	string destfile = dest.str() + s;
 	return destfile;
 }

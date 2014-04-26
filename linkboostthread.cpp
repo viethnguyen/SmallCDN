@@ -13,20 +13,22 @@
 #include "newport.h"
 
 void linkboostthread::run(){
-	if(_mode == MODE_SEND){
-		if(_nodetype == NODE_ROUTER){
+	if(_mode == 0){
+		if(_nodetype == 0){
 			m_thread = boost::thread(&linkboostthread::router_send_message, this, _id, _srcport, _dstport);
 
 		}
 		else{
 			m_thread = boost::thread(&linkboostthread::host_send_message, this, _id, _srcport, _dstport);
+			cout << "In Run: SEND: src = " << _srcport << ", dst = " << _dstport << "\n";
 		}
 	}else {
-		if(_nodetype == NODE_ROUTER){
+		if(_nodetype == 0){
 			m_thread = boost::thread(&linkboostthread::router_receive_message, this,_id,  _srcport, _dstport);
 		}
 		else{
 			m_thread = boost::thread(&linkboostthread::host_receive_message, this, _id, _srcport, _dstport);
+			cout << "In Run: RECEIVE: src = " << _srcport << ", dst = " << _dstport << "\n";
 		}
 	}
 }
@@ -37,7 +39,7 @@ void linkboostthread::join(){
 
 void linkboostthread::host_send_message(int HID, int srcport, int dstport){
 	try{
-			cout << "[SEND THREAD] From: " << srcport << ". To: " << dstport << "\n";
+			cout << "[HOST SEND THREAD] From: " << srcport << ". To: " << dstport << "\n";
 			//configure a sending port
 			const char* hname = "localhost";
 			Address * my_tx_addr = new Address(hname, (short)srcport);
@@ -70,6 +72,8 @@ void linkboostthread::host_send_message(int HID, int srcport, int dstport){
 				for(int i = 0; i < CIDs.size(); i++){
 					Packet *update_packet = m->make_update_packet(CIDs[i], 0);
 					my_tx_port->sendPacket(update_packet);
+					int type = m->get_packet_type(update_packet);
+					cout << "[Host " << HID << "]Send a message of type: " << type << " from port " << srcport << " to port " << dstport << "\n";
 				}
 
 				usleep(10000);	// Sleep: in microseconds
@@ -83,7 +87,7 @@ void linkboostthread::host_send_message(int HID, int srcport, int dstport){
 
 void linkboostthread::host_receive_message(int HID, int srcport, int dstport){
 	try{
-				cout << "[RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+				cout << "[HOST RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 				//configure receiving port
 				const char* hname = "localhost";
 				Address * my_addr = new Address(hname, (short)dstport);
@@ -99,7 +103,7 @@ void linkboostthread::host_receive_message(int HID, int srcport, int dstport){
 					p = my_port->receivePacket();
 					if(p!=NULL){
 						int type = m->get_packet_type(p);
-						cout << "Receive a message of type: " << type << " from port " << srcport << " in port " << dstport << "\n";
+						cout << "[Host " << HID << "]Receive a message of type: " << type << " from port " << srcport << " in port " << dstport << "\n";
 					}
 				}
 
@@ -112,7 +116,7 @@ void linkboostthread::host_receive_message(int HID, int srcport, int dstport){
 
 void linkboostthread::router_send_message(int RID, int srcport, int dstport){
 	try{
-			cout << "[SEND THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+			cout << "[ROUTER SEND THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 			//configure a sending port
 			const char* hname = "localhost";
 			Address * my_tx_addr = new Address(hname, (short)srcport);
@@ -127,7 +131,7 @@ void linkboostthread::router_send_message(int RID, int srcport, int dstport){
 
 				Message *m = new Message();
 				Packet *update_packet = m->make_update_packet(3,1);
-
+				my_tx_port->sendPacket(update_packet);
 				usleep(10000);	// Sleep: in microseconds
 			}
 
@@ -142,7 +146,7 @@ void linkboostthread::router_send_message(int RID, int srcport, int dstport){
 void linkboostthread::router_receive_message(int RID, int srcport, int dstport){
 	try{
 				//cout << "[RECEIVE THREAD]  From: " << _srcport << "(" << (short)_srcport << "). To: " << _dstport << "(" << (short)_dstport << ")\n";
-				cout << "[RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+				cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 				//configure receiving port
 				const char* hname = "localhost";
 				Address * my_addr = new Address(hname, (short)dstport);
@@ -158,7 +162,7 @@ void linkboostthread::router_receive_message(int RID, int srcport, int dstport){
 					if(p!=NULL){
 						int type = m->get_packet_type(p);
 						int CID = m->get_packet_CID(p);
-						cout << "Receive a message: Type: " << type << ". Content ID: " << CID << ". From port " << srcport << " in port " << dstport << "\n";
+						cout << "[R" << RID << "]Receive a message: Type: " << type << ". Content ID: " << CID << ". From port " << srcport << " in port " << dstport << "\n";
 					}
 				}
 

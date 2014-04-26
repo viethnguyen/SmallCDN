@@ -60,4 +60,4 @@ util: util.cpp common.o message.o content.o
 	$(CC) $(CCOPTS) $(LIBS) common.o message.o content.o util.cpp -o util
 	
 clean :
-	rm -f *.o main host router routercontroller util content_*
+	rm -f *.o main host router routercontroller util content_* 

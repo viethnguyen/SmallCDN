@@ -53,7 +53,7 @@ void Host::assign_content(int cid){
 		//copy the content file into the folder
 		Content c;
 		string destfile = c.get_content_name_in_host(id_,cid);
-		copycontent(c.get_content_name(cid), destfile.c_str());
+		copycontent(c.get_content_name(cid).c_str(), destfile.c_str());
 	}
 
 void Host::delete_content(int cid){
