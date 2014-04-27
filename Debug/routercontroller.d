@@ -1,5 +1,5 @@
 routercontroller.d: ../routercontroller.cpp ../common.h ../newport.h \
- ../message.h ../host.h ../router.h ../content.h
+ ../message.h ../host.h ../router.h ../prt.h ../rt.h ../content.h
 
 ../common.h:
 
@@ -10,5 +10,9 @@ routercontroller.d: ../routercontroller.cpp ../common.h ../newport.h \
 ../host.h:
 
 ../router.h:
+
+../prt.h:
+
+../rt.h:
 
 ../content.h:

@@ -1,1 +1,3 @@
-prt.d: ../prt.cpp
+prt.d: ../prt.cpp ../prt.h
+
+../prt.h:

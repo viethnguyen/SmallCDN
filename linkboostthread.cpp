@@ -9,6 +9,9 @@
 #include <boost/thread.hpp>
 #include <boost/date_time.hpp>
 #include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "linkboostthread.h"
 #include "newport.h"
 
@@ -52,16 +55,25 @@ void linkboostthread::host_send_message(int HID, int srcport, int dstport){
 			while(1){
 				// scan to see which contents this host has
 				ostringstream dest;
+				dest << "host";
 				dest << HID;
 				dest << "/";
 				string foldername = dest.str();
+				struct stat filestat;
+				//cout << foldername << "\n";
 				DIR * dir;
 				struct dirent *ent;
 				vector<int> CIDs;
 				if((dir = opendir(foldername.c_str()))!=NULL){
 					while((ent = readdir(dir)) != NULL){
 						string filename(ent->d_name);
+						//cout << filename << "\n";
+						string filepath = foldername + "/" + filename;
+						if(stat(filepath.c_str(), & filestat)) continue;
+						if(S_ISDIR(filestat.st_mode))	continue;
+
 						string sCID = filename.substr(8, filename.length() - 8);
+						cout << sCID << "\n";
 						int CID = atoi(sCID.c_str());
 						CIDs.push_back(CID);
 					}
@@ -76,7 +88,7 @@ void linkboostthread::host_send_message(int HID, int srcport, int dstport){
 					cout << "[Host " << HID << "]Send a message of type: " << type << " from port " << srcport << " to port " << dstport << "\n";
 				}
 
-				usleep(10000);	// Sleep: in microseconds
+				usleep(5000000);	// Sleep: in microseconds
 			}
 		}
 		catch(const char *reason ){
@@ -132,7 +144,7 @@ void linkboostthread::router_send_message(int RID, int srcport, int dstport){
 				Message *m = new Message();
 				Packet *update_packet = m->make_update_packet(3,1);
 				my_tx_port->sendPacket(update_packet);
-				usleep(10000);	// Sleep: in microseconds
+				usleep(5000000);	// Sleep: in microseconds
 			}
 
 		}

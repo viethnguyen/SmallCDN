@@ -1,5 +1,5 @@
 util.d: ../util.cpp ../common.h ../newport.h ../message.h ../host.h \
- ../router.h ../content.h
+ ../router.h ../prt.h ../rt.h ../content.h
 
 ../common.h:
 
@@ -10,5 +10,9 @@ util.d: ../util.cpp ../common.h ../newport.h ../message.h ../host.h \
 ../host.h:
 
 ../router.h:
+
+../prt.h:
+
+../rt.h:
 
 ../content.h:

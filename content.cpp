@@ -28,7 +28,6 @@ string Content::get_content_name(int id){
 	ostringstream oss;
 	oss << "content_";
 	oss << id;
-	cout << oss.str()  << "\n";
 	return oss.str();
 }
 
@@ -38,9 +37,7 @@ string Content::get_content_name_in_host(int hid, int cid){
 	dest << "host";
 	dest << hid;
 	dest << "/";
-	cout << dest.str() << "\n";
 	string s = c.get_content_name(cid);
-	cout << s  << "\n";
 	string destfile = dest.str() + s;
 	return destfile;
 }

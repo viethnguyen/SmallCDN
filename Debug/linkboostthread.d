@@ -1,5 +1,4 @@
-router.d: ../router.cpp ../router.h ../common.h ../prt.h ../rt.h \
- ../newport.h ../message.h ../linkboostthread.h \
+linkboostthread.d: ../linkboostthread.cpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/thread.hpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/thread/thread.hpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/thread/thread_only.hpp \
@@ -841,21 +840,8 @@ router.d: ../router.cpp ../router.h ../common.h ../prt.h ../rt.h \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/local_time/posix_time_zone.hpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/local_time/conversion.hpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/local_time/tz_database.hpp \
- /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/tz_db_base.hpp
-
-../router.h:
-
-../common.h:
-
-../prt.h:
-
-../rt.h:
-
-../newport.h:
-
-../message.h:
-
-../linkboostthread.h:
+ /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/tz_db_base.hpp \
+ ../linkboostthread.h ../common.h ../message.h ../newport.h
 
 /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/thread.hpp:
 
@@ -2540,3 +2526,11 @@ router.d: ../router.cpp ../router.h ../common.h ../prt.h ../rt.h \
 /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/local_time/tz_database.hpp:
 
 /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/tz_db_base.hpp:
+
+../linkboostthread.h:
+
+../common.h:
+
+../message.h:
+
+../newport.h:
