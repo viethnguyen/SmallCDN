@@ -108,14 +108,12 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 				dest << "/";
 				string foldername = dest.str();
 				struct stat filestat;
-				//cout << foldername << "\n";
 				DIR * dir;
 				struct dirent *ent;
 				vector<int> CIDs;
 				if((dir = opendir(foldername.c_str()))!=NULL){
 					while((ent = readdir(dir)) != NULL){
 						string filename(ent->d_name);
-						//cout << filename << "\n";
 						string filepath = foldername + "/" + filename;
 						if(stat(filepath.c_str(), & filestat)) continue;
 						if(S_ISDIR(filestat.st_mode))	continue;
@@ -163,7 +161,9 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 					p = my_port->receivePacket();
 					if(p!=NULL){
 						int type = m->get_packet_type(p);
-						cout << "[Host " << HID << "]Receive a message of type: " << type << " from port " << srcport << " in port " << dstport << "\n";
+						int CID = m->get_packet_CID(p);
+						int HID = m->get_packet_HID(p);
+						cout << "[H" << HID << "]Receive a message of type: " << type << ". CID = " << CID <<". HID = " << HID <<". From port " << srcport << " in port " << dstport << "\n";
 					}
 				}
 
@@ -189,6 +189,7 @@ void Host::setup_link(){
 	r.run();
 	cout << "[CREATE] a thread to receive from port " << routersendingport_ << " in port " << receivingportfromrouter_ << "\n";
 	*/
+
 	boost::thread sthread, rthread;
 	sthread = boost::thread(&Host::host_send_message, this, id_, sendingporttorouter_, routerreceivingport_);
 	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";

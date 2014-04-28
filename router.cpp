@@ -79,9 +79,8 @@ void Router::setup_link(){
 		cout << "[CREATE] a thread to receive from port " << farroutersendingportno_[i] << " in port " << receivingportno_[i]<< "\n";
 	}*/
 
-
 	boost::thread sh_thread = boost::thread(&Router::router_send_message, this, rid_, sendingporttohost_, hostlisteningport_);
-	boost::thread rh_thread = boost::thread(&Router::router_receive_message,this, rid_, hostsendingport_, hostlisteningport_);
+	boost::thread rh_thread = boost::thread(&Router::router_receive_message,this, rid_, hostsendingport_, receivingportfromhost_);
 
 	//setup links with other neighbor routers
 	int n = sendingportno_.size();
@@ -89,7 +88,6 @@ void Router::setup_link(){
 		boost::thread sthread = boost::thread(&Router::router_send_message, this, rid_, sendingportno_[i], farrouterreceivingportno_[i]);
 		boost::thread rthread = boost::thread(&Router::router_receive_message,this, rid_, farroutersendingportno_[i], receivingportno_[i]);
 	}
-
 }
 
 void Router::router_send_message(int RID, int srcport, int dstport){
@@ -106,11 +104,11 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 
 			while(1){
 				// scan the routing table
-				/*
+
 				Message *m = new Message();
 				Packet *update_packet = m->make_update_packet(3,1);
 				my_tx_port->sendPacket(update_packet);
-				*/
+
 				usleep(5000000);	// Sleep: in microseconds
 			}
 

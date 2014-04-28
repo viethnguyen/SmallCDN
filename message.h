@@ -16,21 +16,16 @@ protected:
 	int number_of_packets_;
 	size_t length_;
 
-	//3 types of packets
-
-	static const int POS_TYPE = 0;
-	static const int POS_CID = 8;
-	static const int POS_HID = 16;
-	static const int POS_HOPS = 16;
-	static const int POS_SIZE = 24;
-	static const int POS_PAYLOAD = 40;
-
-	static const int LEN_TYPE = 8;
-	static const int LEN_CID = 8;
-	static const int LEN_HID = 8;
-	static const int LEN_SIZE = 16;
-
 public:
+	//3 types of packets
+	//define message format - byte position in the header of each field
+	static const int POS_TYPE = 0;
+	static const int POS_CID = 1;
+	static const int POS_HID = 2;
+	static const int POS_HOPS = 2;
+	static const int POS_SIZE = 3;
+	static const int POS_PAYLOAD = 5;
+
 	static const int TYPE_REQUEST = 0;
 	static const int TYPE_RESPONSE = 1;
 	static const int TYPE_UPDATE = 2;

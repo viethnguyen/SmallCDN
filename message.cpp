@@ -46,9 +46,9 @@ Packet *Message::make_request_packet(int CID, int HID){
 
 	//Header
 	PacketHdr *hdr = request_packet->accessHeader();
-	hdr->setShortIntegerInfo(TYPE_REQUEST, POS_TYPE );
-	hdr->setShortIntegerInfo(CID, POS_CID );
-	hdr->setShortIntegerInfo(HID, POS_HID );
+	hdr->setOctet(TYPE_REQUEST, POS_TYPE );
+	hdr->setOctet(CID, POS_CID );
+	hdr->setOctet(HID, POS_HID );
 
 	// no payload
 	return request_packet;
@@ -69,10 +69,10 @@ Packet *Message::make_response_packet(int CID, int HID, char *filename){
 
 	//Header
 	PacketHdr *hdr = response_packet->accessHeader();
-	hdr->setShortIntegerInfo(TYPE_REQUEST, POS_TYPE );
-	hdr->setShortIntegerInfo(CID, POS_CID );
-	hdr->setShortIntegerInfo(HID, POS_HID );
-	hdr->setIntegerInfo(len, POS_SIZE);
+	hdr->setOctet(TYPE_REQUEST, POS_TYPE );
+	hdr->setOctet(CID, POS_CID );
+	hdr->setOctet(HID, POS_HID );
+	hdr->setShortIntegerInfo(len, POS_SIZE);
 
 	// fill payload by content...
 	response_packet->fillPayload(len, datachunk);
@@ -87,9 +87,9 @@ Packet *Message::make_update_packet(int CID, int nhops){
 
 	//Header
 	PacketHdr *hdr = update_packet->accessHeader();
-	hdr->setShortIntegerInfo(TYPE_UPDATE, POS_TYPE );
-	hdr->setShortIntegerInfo(CID, POS_CID );
-	hdr->setShortIntegerInfo(nhops, POS_HOPS );
+	hdr->setOctet(TYPE_UPDATE, POS_TYPE );
+	hdr->setOctet(CID, POS_CID );
+	hdr->setOctet(nhops, POS_HOPS );
 
 	// no payload
 	return update_packet;
@@ -97,22 +97,22 @@ Packet *Message::make_update_packet(int CID, int nhops){
 
 int Message::get_packet_type(Packet *p){
 	PacketHdr *hdr = p->accessHeader();
-	return (int) hdr->getShortIntegerInfo(POS_TYPE);
+	return (int) hdr->getOctet(POS_TYPE);
 }
 
 int Message::get_packet_CID(Packet *p){
 	PacketHdr *hdr = p->accessHeader();
-	return (int) hdr->getShortIntegerInfo(POS_CID);
+	return (int) hdr->getOctet(POS_CID);
 }
 
 int Message::get_packet_HID(Packet *p){
 	PacketHdr *hdr = p->accessHeader();
-	return (int) hdr->getShortIntegerInfo(POS_HID);
+	return (int) hdr->getOctet(POS_HID);
 }
 
 int Message::get_packet_HOPS(Packet *p){
 	PacketHdr *hdr = p->accessHeader();
-	return (int) hdr->getShortIntegerInfo(POS_HOPS);
+	return (int) hdr->getOctet(POS_HOPS);
 }
 
 int Message::get_packet_size(Packet *p){
