@@ -24,9 +24,9 @@
 #define DATA_MESSAGE_TYPE 12
 #define NACK_MESSAGE_TYPE 13
 
-#define TYPE_REQUEST 0
-#define TYPE_RESPONSE 1
-#define TYPE_UPDATE 2
+//#define TYPE_REQUEST 0
+//#define TYPE_RESPONSE 1
+//#define TYPE_UPDATE 2
 
 
 /**

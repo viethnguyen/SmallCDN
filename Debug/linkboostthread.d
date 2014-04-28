@@ -841,7 +841,8 @@ linkboostthread.d: ../linkboostthread.cpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/local_time/conversion.hpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/local_time/tz_database.hpp \
  /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/date_time/tz_db_base.hpp \
- ../linkboostthread.h ../common.h ../message.h ../newport.h
+ ../linkboostthread.h ../common.h ../message.h ../prt.h ../rt.h \
+ ../newport.h
 
 /home/vietnguyen/workspace/commnet2-project3/boost_build/include/boost/thread.hpp:
 
@@ -2532,5 +2533,9 @@ linkboostthread.d: ../linkboostthread.cpp \
 ../common.h:
 
 ../message.h:
+
+../prt.h:
+
+../rt.h:
 
 ../newport.h:

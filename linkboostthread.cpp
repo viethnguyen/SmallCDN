@@ -27,7 +27,7 @@ void linkboostthread::run(){
 		}
 	}else {
 		if(_nodetype == 0){
-			m_thread = boost::thread(&linkboostthread::router_receive_message, this,_id,  _srcport, _dstport);
+			m_thread = boost::thread(&linkboostthread::router_receive_message, this,_id,  _srcport, _dstport, boost::ref(*rt_), boost::ref(*rtmutex_));
 		}
 		else{
 			m_thread = boost::thread(&linkboostthread::host_receive_message, this, _id, _srcport, _dstport);
@@ -85,7 +85,7 @@ void linkboostthread::host_send_message(int HID, int srcport, int dstport){
 					Packet *update_packet = m->make_update_packet(CIDs[i], 0);
 					my_tx_port->sendPacket(update_packet);
 					int type = m->get_packet_type(update_packet);
-					cout << "[Host " << HID << "]Send a message of type: " << type << " from port " << srcport << " to port " << dstport << "\n";
+					cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
 				}
 
 				usleep(5000000);	// Sleep: in microseconds
@@ -140,10 +140,11 @@ void linkboostthread::router_send_message(int RID, int srcport, int dstport){
 
 			while(1){
 				// scan the routing table
-
+				/*
 				Message *m = new Message();
 				Packet *update_packet = m->make_update_packet(3,1);
 				my_tx_port->sendPacket(update_packet);
+				*/
 				usleep(5000000);	// Sleep: in microseconds
 			}
 
@@ -155,9 +156,8 @@ void linkboostthread::router_send_message(int RID, int srcport, int dstport){
 }
 
 
-void linkboostthread::router_receive_message(int RID, int srcport, int dstport){
+void linkboostthread::router_receive_message(int RID, int srcport, int dstport, RT rt, boost::mutex rt_mutex){
 	try{
-				//cout << "[RECEIVE THREAD]  From: " << _srcport << "(" << (short)_srcport << "). To: " << _dstport << "(" << (short)_dstport << ")\n";
 				cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 				//configure receiving port
 				const char* hname = "localhost";
@@ -175,6 +175,40 @@ void linkboostthread::router_receive_message(int RID, int srcport, int dstport){
 						int type = m->get_packet_type(p);
 						int CID = m->get_packet_CID(p);
 						cout << "[R" << RID << "]Receive a message: Type: " << type << ". Content ID: " << CID << ". From port " << srcport << " in port " << dstport << "\n";
+						switch(type){
+						case 2:		{//Message.TYPE_UPDATE
+							boost::lock_guard<boost::mutex> guard(rt_mutex);
+							RTentry *entry = rt.get_entry(CID);
+							if(entry!=NULL){
+								cout << "Get here 1\n";
+								int oldnHops = entry->getnHops();
+								cout << "Get here 2\n";
+								int newnHops = m->get_packet_HOPS(p);
+								cout << "Get here 3\n";
+								if(newnHops < oldnHops ){
+									rt.delete_entry(CID);
+
+									cout << "Get here 4\n";
+									int IID = (dstport - 10500) % 1000;
+
+									cout << "Get here 5\n";
+									RTentry newentry(CID, IID, newnHops);
+
+									cout << "Get here 6\n";
+									rt.add_entry(newentry);
+								}
+							}
+							break;
+						}
+						case 0: 	{//Message.TYPE_REQUEST
+							break;
+						}
+						case 1: 	{//Message.TYPE_RESPONSE
+							break;
+						}
+						default:
+							break;
+						}
 					}
 				}
 

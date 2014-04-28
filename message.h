@@ -30,8 +30,11 @@ protected:
 	static const int LEN_HID = 8;
 	static const int LEN_SIZE = 16;
 
-
 public:
+	static const int TYPE_REQUEST = 0;
+	static const int TYPE_RESPONSE = 1;
+	static const int TYPE_UPDATE = 2;
+
 	static const int MAX_FILE_NAME_LEN = 80;
 	Message();
 

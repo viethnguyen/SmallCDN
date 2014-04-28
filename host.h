@@ -28,6 +28,8 @@ public:
 	void assign_router(int rid);
 	void assign_content(int cid);
 	void delete_content(int cid);
+	void host_send_message( int id, int srcport, int dstport);
+	void host_receive_message(int id, int srcport, int dstport);
 	void shutdown();
 	void copycontent(const char *infile, const char *outfile);
 	void setup_link();

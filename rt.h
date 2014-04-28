@@ -47,6 +47,8 @@ private:
 	vector<RTentry> _table;
 public:
 	void add_entry(RTentry entry);
+	RTentry *get_entry(int CID);
+	void delete_entry(int CID);
 	void update_table();
 	void print_table();
 };

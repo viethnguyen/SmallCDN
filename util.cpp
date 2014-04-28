@@ -8,14 +8,18 @@
 #include <iostream>
 #include <fstream>
 #include <time.h>
+#include <boost/system/error_code.hpp>
 
 using namespace std;
 
 void test_message(){
-	/*
+
 	Message m;
-	Packet * response = m.make_response_packet(1,1, "c2.txt");
-	*/
+	Packet * p = m.make_update_packet(3,1);
+	cout << m.get_packet_HOPS(p) << "\n";
+	cout << m.get_packet_CID(p) << "\n";
+	cout << m.get_packet_type(p) << "\n";
+
 }
 
 void gen_content(){
@@ -28,6 +32,7 @@ void gen_content(){
 }
 
 int main(){
-	gen_content();
+	test_message();
+	//gen_content();
 	return 0;
 }

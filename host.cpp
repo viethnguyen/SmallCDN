@@ -10,7 +10,13 @@
 #include "message.h"
 #include "host.h"
 #include "content.h"
-#include "linkboostthread.h"
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <boost/thread.hpp>
+#include <boost/date_time.hpp>
+//#include "linkboostthread.h"
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -82,20 +88,113 @@ void Host::copycontent(const char *infile, const char *outfile){
 	copy (begin, end, begin2);
 }
 
+void Host::host_send_message(int HID, int srcport, int dstport){
+	try{
+			cout << "[HOST SEND THREAD] From: " << srcport << ". To: " << dstport << "\n";
+			//configure a sending port
+			const char* hname = "localhost";
+			Address * my_tx_addr = new Address(hname, (short)srcport);
+			Address * dst_addr =  new Address(hname, (short)dstport);
+			mySendingPort *my_tx_port = new mySendingPort();
+			my_tx_port->setAddress(my_tx_addr);
+			my_tx_port->setRemoteAddress(dst_addr);
+			my_tx_port->init();
+
+			while(1){
+				// scan to see which contents this host has
+				ostringstream dest;
+				dest << "host";
+				dest << HID;
+				dest << "/";
+				string foldername = dest.str();
+				struct stat filestat;
+				//cout << foldername << "\n";
+				DIR * dir;
+				struct dirent *ent;
+				vector<int> CIDs;
+				if((dir = opendir(foldername.c_str()))!=NULL){
+					while((ent = readdir(dir)) != NULL){
+						string filename(ent->d_name);
+						//cout << filename << "\n";
+						string filepath = foldername + "/" + filename;
+						if(stat(filepath.c_str(), & filestat)) continue;
+						if(S_ISDIR(filestat.st_mode))	continue;
+
+						string sCID = filename.substr(8, filename.length() - 8);
+						cout << sCID << "\n";
+						int CID = atoi(sCID.c_str());
+						CIDs.push_back(CID);
+					}
+					closedir (dir);
+				}
+
+				Message *m = new Message();
+				for(int i = 0; i < CIDs.size(); i++){
+					Packet *update_packet = m->make_update_packet(CIDs[i], 0);
+					my_tx_port->sendPacket(update_packet);
+					int type = m->get_packet_type(update_packet);
+					cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
+				}
+
+				usleep(5000000);	// Sleep: in microseconds
+			}
+		}
+		catch(const char *reason ){
+		    cerr << "Exception:" << reason << endl;
+		    exit(-1);
+		}
+}
+
+void Host::host_receive_message(int HID, int srcport, int dstport){
+	try{
+				cout << "[HOST RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+				//configure receiving port
+				const char* hname = "localhost";
+				Address * my_addr = new Address(hname, (short)dstport);
+				LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
+				my_port->setAddress(my_addr);
+				my_port->init();
+
+
+				Message *m = new Message();
+				Packet *p;
+				while (1)
+				{
+					p = my_port->receivePacket();
+					if(p!=NULL){
+						int type = m->get_packet_type(p);
+						cout << "[Host " << HID << "]Receive a message of type: " << type << " from port " << srcport << " in port " << dstport << "\n";
+					}
+				}
+
+			}
+			catch(const char *reason ){
+			    cerr << "Exception:" << reason << endl;
+			    exit(-1);
+			}
+}
+
+
 void Host::shutdown(){
 	//signaling all the threads
 }
 
 void Host::setup_link(){
-	//linkboostthread s(id_,sendingporttorouter_, routerreceivingport_, linkboostthread.MODE_SEND, linkboostthread.NODE_HOST);
+	/*
 	linkboostthread s(id_,sendingporttorouter_, routerreceivingport_, 0, 1);
 	s.run();
 	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";
 
-	//linkboostthread r(id_, routersendingport_, receivingportfromrouter_, linkboostthread.MODE_RECEIVE, linkboostthread.NODE_HOST);
 	linkboostthread r(id_, routersendingport_, receivingportfromrouter_, 1, 1);
 	r.run();
 	cout << "[CREATE] a thread to receive from port " << routersendingport_ << " in port " << receivingportfromrouter_ << "\n";
+	*/
+	boost::thread sthread, rthread;
+	sthread = boost::thread(&Host::host_send_message, this, id_, sendingporttorouter_, routerreceivingport_);
+	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";
+	rthread = boost::thread(&Host::host_receive_message, this, id_, routersendingport_, receivingportfromrouter_);
+	cout << "[CREATE] a thread to receive from port " << routersendingport_ << " in port " << receivingportfromrouter_ << "\n";
+
 }
 
 int main(){
