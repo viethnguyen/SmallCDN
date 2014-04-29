@@ -14,6 +14,16 @@ void RTentry::updateTTE(){
 	_TTE = _TTE - TIME_TO_REVISIT;
 }
 
+vector<RTentry> RT::export_table(){
+	// a little bit slow...
+	vector<RTentry> res;
+	for(int i = 0; i < _table.size(); i++){
+		RTentry e(_table[i]);
+		res.push_back(e);
+	}
+	return res;
+}
+
 void RT::add_entry(RTentry entry){
 	_table.push_back(entry);
 }

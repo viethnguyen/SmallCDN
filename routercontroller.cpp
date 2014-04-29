@@ -42,7 +42,7 @@ public:
 			routercount = atoi(line0.c_str());
 			cout << "Count: " << routercount << "\n";
 			for(int i = 0; i < routercount; i++){
-				Router r;
+				Router *r = new Router();
 
 				// neighbor routers
 				string line1;
@@ -55,9 +55,9 @@ public:
 					cout << "word " << ++cntr << ": " << trim( word) << "\n";
 
 					if(cntr == 1){
-						r.set_id(atoi(word.c_str()));
+						r->set_id(atoi(word.c_str()));
 					}else{
-						r.assign_nr(atoi(word.c_str()));
+						r->assign_nr(atoi(word.c_str()));
 					}
 				}
 
@@ -70,13 +70,14 @@ public:
 				while(getline(iss2, word,' ')){
 					cout << "word " << ++cntr << ": " << trim( word) << "\n";
 					if (cntr == 2){
-						r.assign_host(atoi(word.c_str()));
+						r->assign_host(atoi(word.c_str()));
 					}
 				}
-				r.calc_port_no();
-				r.setup_link();
+				r->calc_port_no();
+				r->setup_link();
 			}
 			in.close();
+
 		}
 		else{
 			cout << "Unable to open to network topology file";

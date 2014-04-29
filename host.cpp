@@ -180,16 +180,6 @@ void Host::shutdown(){
 }
 
 void Host::setup_link(){
-	/*
-	linkboostthread s(id_,sendingporttorouter_, routerreceivingport_, 0, 1);
-	s.run();
-	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";
-
-	linkboostthread r(id_, routersendingport_, receivingportfromrouter_, 1, 1);
-	r.run();
-	cout << "[CREATE] a thread to receive from port " << routersendingport_ << " in port " << receivingportfromrouter_ << "\n";
-	*/
-
 	boost::thread sthread, rthread;
 	sthread = boost::thread(&Host::host_send_message, this, id_, sendingporttorouter_, routerreceivingport_);
 	cout << "[CREATE] a thread to send from port " << sendingporttorouter_ << " to port " << routerreceivingport_ << "\n";

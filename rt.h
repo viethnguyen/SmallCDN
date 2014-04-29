@@ -14,12 +14,12 @@ using namespace std;
 
 class RTentry{
 private:
-	const static int TIME_TO_REVISIT = 10;
-	const static int INITIAL_TTE = 1000;
+	const static int TIME_TO_REVISIT = 30;	// in seconds
+	const static int INITIAL_TTE = 100;
 	int _CID;		//Content ID
 	int _IID;		//Interface ID
 	int _nHops;		//number of Hops
-	int _TTE;		//Time to expire
+	int _TTE;		//Time to expire (in seconds)
 public:
 	RTentry(int CID, int IID, int nHops){
 		_CID = CID;
@@ -46,6 +46,7 @@ class RT{
 private:
 	vector<RTentry> _table;
 public:
+	vector<RTentry> export_table();
 	void add_entry(RTentry entry);
 	RTentry *get_entry(int CID);
 	void delete_entry(int CID);

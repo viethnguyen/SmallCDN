@@ -12,20 +12,19 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <boost/thread.hpp>
-#include <boost/date_time.hpp>
+#include <boost/thread/mutex.hpp>
 //#include "linkboostthread.h"
 using namespace std;
 
 Router::Router(){
 	rid_ = -1;
-	prt_ = new PRT();
-	rt_ = new RT();
+	rtmutex_ = new boost::mutex();
+	prtmutex_ = new boost::mutex();
 }
 Router::Router (int rid){
 	rid_ = rid;
-	prt_ = new PRT();
-	rt_ = new RT();
+	rtmutex_ = new boost::mutex();
+	prtmutex_ = new boost::mutex();
 }
 void Router::set_id(int rid){
 	rid_ = rid;
@@ -50,47 +49,34 @@ void Router::calc_port_no(){
 }
 
 void Router::setup_link(){
-	/*
-	linkboostthread sh(rid_, sendingporttohost_, hostlisteningport_, 0, 0);
-	sh.router_set_prt(prt_, &prtmutex_);
-	sh.router_set_rt(rt_, &rtmutex_);
-	sh.run();
-	cout << "[CREATE] a thread to send from port " << sendingporttohost_ << " to port " << hostlisteningport_ << "\n";
-
-	linkboostthread rh(rid_, hostsendingport_, receivingportfromhost_, 1, 0);
-	sh.router_set_prt(prt_, &prtmutex_);
-	sh.router_set_rt(rt_, &rtmutex_);
-	rh.run();
-	cout << "[CREATE] a thread to receive from port " << hostsendingport_ << " in port " << receivingportfromhost_ << "\n";
-
-	//setup links with other neighbor routers
-	int n = sendingportno_.size();
-	for(int i = 0; i < n ; i++){
-		linkboostthread s(rid_, sendingportno_[i], farrouterreceivingportno_[i],0, 0);
-		s.router_set_prt(prt_, &prtmutex_);
-		s.router_set_rt(rt_, &rtmutex_);
-		s.run();
-		cout << "[CREATE] a thread to send from port " << sendingportno_[i] << " to port " << farrouterreceivingportno_[i] << "\n";
-
-		linkboostthread r(rid_, farroutersendingportno_[i], receivingportno_[i], 1, 0);
-		r.router_set_prt(prt_, &prtmutex_);
-		r.router_set_rt(rt_, &rtmutex_);
-		r.run();
-		cout << "[CREATE] a thread to receive from port " << farroutersendingportno_[i] << " in port " << receivingportno_[i]<< "\n";
-	}*/
-
-	boost::thread sh_thread = boost::thread(&Router::router_send_message, this, rid_, sendingporttohost_, hostlisteningport_);
-	boost::thread rh_thread = boost::thread(&Router::router_receive_message,this, rid_, hostsendingport_, receivingportfromhost_);
+	boost::thread cleaning_thread = boost::thread(&Router::cleaning_tables, this, rid_, rtmutex_);
+	cout << "[IN SETUPLINLK] " << rtmutex_ << "\n";
+	boost::thread sh_thread = boost::thread(&Router::router_send_message, this, rid_, sendingporttohost_, hostlisteningport_, rtmutex_);
+	boost::thread rh_thread = boost::thread(&Router::router_receive_message,this, rid_, hostsendingport_, receivingportfromhost_, rtmutex_);
 
 	//setup links with other neighbor routers
 	int n = sendingportno_.size();
 	for(int i = 0; i<n ; i++){
-		boost::thread sthread = boost::thread(&Router::router_send_message, this, rid_, sendingportno_[i], farrouterreceivingportno_[i]);
-		boost::thread rthread = boost::thread(&Router::router_receive_message,this, rid_, farroutersendingportno_[i], receivingportno_[i]);
+		boost::thread sthread = boost::thread(&Router::router_send_message, this, rid_, sendingportno_[i], farrouterreceivingportno_[i], rtmutex_);
+		boost::thread rthread = boost::thread(&Router::router_receive_message,this, rid_, farroutersendingportno_[i], receivingportno_[i], rtmutex_);
+	}
+
+}
+
+void Router::cleaning_tables(int RID, boost::mutex *mutex){
+	//scan the routing table and reduce Time to expire of all entries
+	while(1){
+		cout << "[R" << RID << "]CLEANING TABLES - After clean: \n";
+		{
+			boost::unique_lock<boost::mutex> lock(*mutex);
+			rt_.update_table();
+			rt_.print_table();
+		}
+		usleep(30000000);	//in microseconds
 	}
 }
 
-void Router::router_send_message(int RID, int srcport, int dstport){
+void Router::router_send_message(int RID, int srcport, int dstport, boost::mutex *rtmutex){
 	try{
 			cout << "[ROUTER SEND THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 			//configure a sending port
@@ -104,11 +90,17 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 
 			while(1){
 				// scan the routing table
-
-				Message *m = new Message();
-				Packet *update_packet = m->make_update_packet(3,1);
-				my_tx_port->sendPacket(update_packet);
-
+				vector<RTentry> v;
+				{
+					boost::unique_lock<boost::mutex> lock(*rtmutex);
+					v = rt_.export_table();
+				}
+				for(int i = 0; i<v.size(); i++){
+					Message *m = new Message();
+					Packet *update_packet =m->make_update_packet(v[i].getCID(), v[i].getnHops());
+					my_tx_port->sendPacket(update_packet);
+					//cout << "[R" << RID << "] Send new update packet CID = "<<  v[i].getCID() << "\n";
+				}
 				usleep(5000000);	// Sleep: in microseconds
 			}
 
@@ -120,7 +112,7 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 }
 
 
-void Router::router_receive_message(int RID, int srcport, int dstport){
+void Router::router_receive_message(int RID, int srcport, int dstport, boost::mutex *rtmutex){
 	try{
 				cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 				//configure receiving port
@@ -141,29 +133,32 @@ void Router::router_receive_message(int RID, int srcport, int dstport){
 						cout << "[R" << RID << "]Receive a message: Type: " << type << ". Content ID: " << CID << ". From port " << srcport << " in port " << dstport << "\n";
 						switch(type){
 						case 2:		{//Message.TYPE_UPDATE
-							/*
-							boost::lock_guard<boost::mutex> guard(rt_mutex);
-							RTentry *entry = rt.get_entry(CID);
+							boost::unique_lock<boost::mutex> lock(*rtmutex);
+							RTentry *entry = rt_.get_entry(CID);
 							if(entry!=NULL){
-								cout << "Get here 1\n";
 								int oldnHops = entry->getnHops();
-								cout << "Get here 2\n";
-								int newnHops = m->get_packet_HOPS(p);
-								cout << "Get here 3\n";
+								int newnHops = m->get_packet_HOPS(p) + 1;
 								if(newnHops < oldnHops ){
-									rt.delete_entry(CID);
-
-									cout << "Get here 4\n";
+									rt_.delete_entry(CID);
 									int IID = (dstport - 10500) % 1000;
-
-									cout << "Get here 5\n";
 									RTentry newentry(CID, IID, newnHops);
-
-									cout << "Get here 6\n";
-									rt.add_entry(newentry);
+									rt_.add_entry(newentry);
+									cout << "\t[R" << RID << "][ADD] CID = "<<  CID << ". New table: \n";
+									rt_.print_table();
+								}
+								else {
+									cout << "\t[R" << RID << "][OUTSTANDING]. Old table: \n";
+									rt_.print_table();
 								}
 							}
-							*/
+							else{
+								int IID = (dstport - 10500) % 1000;
+								int newnHops = m->get_packet_HOPS(p) + 1;
+								RTentry newentry(CID, IID, newnHops);
+								rt_.add_entry(newentry);
+								cout << "\t[R" << RID << "][ADD] CID = "<<  CID << ". New table: \n";
+								rt_.print_table();
+							}
 							break;
 						}
 						case 0: 	{//Message.TYPE_REQUEST
