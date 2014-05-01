@@ -14,7 +14,9 @@ void RTentry::updateTTE(){
 	_TTE = _TTE - TIME_TO_REVISIT;
 }
 
+
 vector<RTentry> RT::export_table(){
+	boost::lock_guard<boost::mutex> lock(* _mutex);
 	// a little bit slow...
 	vector<RTentry> res;
 	for(int i = 0; i < _table.size(); i++){
@@ -25,10 +27,12 @@ vector<RTentry> RT::export_table(){
 }
 
 void RT::add_entry(RTentry entry){
+	boost::lock_guard<boost::mutex> lock(* _mutex);
 	_table.push_back(entry);
 }
 
 RTentry *RT::get_entry(int CID){
+	boost::lock_guard<boost::mutex> lock(* _mutex);
 	vector<RTentry>::iterator it = _table.begin();
 	while(it!=_table.end()){
 		if(it->getCID() == CID){
@@ -39,6 +43,7 @@ RTentry *RT::get_entry(int CID){
 }
 
 void RT::delete_entry(int CID){
+	boost::lock_guard<boost::mutex> lock(* _mutex);
 	vector<RTentry>::iterator it = _table.begin();
 	while(it!= _table.end()){
 		if(it->getCID() == CID){
@@ -49,6 +54,7 @@ void RT::delete_entry(int CID){
 }
 
 void RT::update_table(){
+	boost::lock_guard<boost::mutex> lock(* _mutex);
 	vector<RTentry>::iterator it = _table.begin();
 	while(it!=_table.end()){
 		it->updateTTE();
@@ -61,6 +67,7 @@ void RT::update_table(){
 }
 
 void RT::print_table(){
+	boost::lock_guard<boost::mutex> lock(* _mutex);
 	vector<RTentry>::iterator it = _table.begin();
 	cout << "Routing table: \n";
 	while(it!=_table.end()){

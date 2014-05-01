@@ -132,6 +132,7 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 					my_tx_port->sendPacket(update_packet);
 					int type = m->get_packet_type(update_packet);
 					cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
+					usleep(2000000);
 				}
 
 				usleep(5000000);	// Sleep: in microseconds

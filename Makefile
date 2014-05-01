@@ -37,8 +37,8 @@ content.o: content.h content.cpp
 prt.o: prt.h prt.cpp
 	$(CC) $(CCOPTS) -c prt.cpp 
 	
-rt.o: rt.h rt.cpp
-	$(CC) $(CCOPTS) -c rt.cpp
+rt.o: rt.h rt.cpp 
+	$(CC) $(CCOPTS) $(LIBS) -I $(BOOST_INCLUDE_DIR) -c rt.cpp -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 
 #linkthread.o: linkthread.h linkthread.cpp
 #	$(CC) $(CCOPTS) $(LIBS) -c linkthread.cpp

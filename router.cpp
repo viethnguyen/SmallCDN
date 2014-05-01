@@ -20,11 +20,13 @@ Router::Router(){
 	rid_ = -1;
 	rtmutex_ = new boost::mutex();
 	prtmutex_ = new boost::mutex();
+	queuemutex_ = new boost::mutex();
 }
 Router::Router (int rid){
 	rid_ = rid;
 	rtmutex_ = new boost::mutex();
 	prtmutex_ = new boost::mutex();
+	queuemutex_ = new boost::mutex();
 }
 void Router::set_id(int rid){
 	rid_ = rid;
@@ -36,7 +38,8 @@ void Router::assign_nr(int rid){
 	nrids_.push_back(rid);
 }
 void Router::calc_port_no(){
-	for(int i = 0; i < nrids_.size(); i++){
+	int n = nrids_.size();
+	for(int i = 0; i < n; i++){
 		sendingportno_.push_back(10000 + rid_*1000 + nrids_[i]);
 		receivingportno_.push_back(10000 + rid_*1000 + 500 + nrids_[i]);
 		farroutersendingportno_.push_back(10000 + nrids_[i] * 1000 + rid_ );
@@ -61,6 +64,9 @@ void Router::setup_link(){
 		boost::thread rthread = boost::thread(&Router::router_receive_message,this, rid_, farroutersendingportno_[i], receivingportno_[i], rtmutex_);
 	}
 
+	// process message
+	boost::thread processthread = boost::thread(&Router::router_process_message, this);
+
 }
 
 void Router::cleaning_tables(int RID, boost::mutex *mutex){
@@ -68,7 +74,8 @@ void Router::cleaning_tables(int RID, boost::mutex *mutex){
 	while(1){
 		cout << "[R" << RID << "]CLEANING TABLES - After clean: \n";
 		{
-			boost::unique_lock<boost::mutex> lock(*mutex);
+			//boost::unique_lock<boost::mutex> lock(*rtmutex_);
+			//boost::unique_lock<boost::mutex> lock(*mutex);
 			rt_.update_table();
 			rt_.print_table();
 		}
@@ -92,10 +99,12 @@ void Router::router_send_message(int RID, int srcport, int dstport, boost::mutex
 				// scan the routing table
 				vector<RTentry> v;
 				{
-					boost::unique_lock<boost::mutex> lock(*rtmutex);
+					//boost::unique_lock<boost::mutex> lock(*rtmutex_);
+					//boost::unique_lock<boost::mutex> lock(*rtmutex);
 					v = rt_.export_table();
 				}
-				for(int i = 0; i<v.size(); i++){
+				int n = v.size();
+				for(int i = 0; i<n; i++){
 					Message *m = new Message();
 					Packet *update_packet =m->make_update_packet(v[i].getCID(), v[i].getnHops());
 					my_tx_port->sendPacket(update_packet);
@@ -111,6 +120,80 @@ void Router::router_send_message(int RID, int srcport, int dstport, boost::mutex
 		}
 }
 
+void Router::router_process_message(){
+	try{
+		while(1){
+			cout << "[R" << rid_ << "] ROUTER PROCESS MESSAGE\n";
+			pair<int, Packet> message;
+			bool isMessageAvailable = false;
+			{
+				boost::unique_lock<boost::mutex> lock(* queuemutex_ );
+				if(message_queue_.size() != 0){
+					isMessageAvailable = true;
+					message = message_queue_.front();
+					message_queue_.pop();
+				}
+			}
+
+			if(! isMessageAvailable){
+				usleep(2000000);
+				continue;
+			}
+
+			int IID = message.first;
+			Packet *p = &(message.second);
+
+			Message *m = new Message();
+			int type = m->get_packet_type(p);
+			int CID = m->get_packet_CID(p);
+			cout << "[R" << rid_ << "]Receive a message: Type: " << type << ". Content ID: " << CID << "\n";
+
+			switch(type){
+			case 2:		{//Message.TYPE_UPDATE
+				RTentry *entry = rt_.get_entry(CID);
+				cout << "Looked up if an entry with CID = " << CID << " exist...";
+				if(entry!=NULL){
+					int oldnHops = entry->getnHops();
+					int newnHops = m->get_packet_HOPS(p) + 1;
+					if(newnHops < oldnHops ){
+						rt_.delete_entry(CID);
+						RTentry newentry(CID, IID, newnHops);
+						rt_.add_entry(newentry);
+						cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". New table: \n";
+						rt_.print_table();
+					}
+					else {
+						cout << "\t[R" << rid_ << "][OUTSTANDING]. Old table: \n";
+						rt_.print_table();
+					}
+				}
+				else{
+					int newnHops = m->get_packet_HOPS(p) + 1;
+					RTentry newentry(CID, IID, newnHops);
+					rt_.add_entry(newentry);
+					cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". New table: \n";
+					rt_.print_table();
+				}
+				break;
+			}
+			case 0: 	{//Message.TYPE_REQUEST
+				break;
+			}
+			case 1: 	{//Message.TYPE_RESPONSE
+				break;
+			}
+			default:
+				break;
+			}
+			usleep(2000000);
+		}
+
+	}catch(const char *reason ){
+	    cerr << "Exception:" << reason << endl;
+	    exit(-1);
+	}
+}
+
 
 void Router::router_receive_message(int RID, int srcport, int dstport, boost::mutex *rtmutex){
 	try{
@@ -122,57 +205,17 @@ void Router::router_receive_message(int RID, int srcport, int dstport, boost::mu
 				my_port->setAddress(my_addr);
 				my_port->init();
 
-				Message *m = new Message();
 				Packet *p;
 				while (1)
 				{
 					p = my_port->receivePacket();
+					int IID = (dstport - 10500) % 1000;
 					if(p!=NULL){
-						int type = m->get_packet_type(p);
-						int CID = m->get_packet_CID(p);
-						cout << "[R" << RID << "]Receive a message: Type: " << type << ". Content ID: " << CID << ". From port " << srcport << " in port " << dstport << "\n";
-						switch(type){
-						case 2:		{//Message.TYPE_UPDATE
-							boost::unique_lock<boost::mutex> lock(*rtmutex);
-							RTentry *entry = rt_.get_entry(CID);
-							if(entry!=NULL){
-								int oldnHops = entry->getnHops();
-								int newnHops = m->get_packet_HOPS(p) + 1;
-								if(newnHops < oldnHops ){
-									rt_.delete_entry(CID);
-									int IID = (dstport - 10500) % 1000;
-									RTentry newentry(CID, IID, newnHops);
-									rt_.add_entry(newentry);
-									cout << "\t[R" << RID << "][ADD] CID = "<<  CID << ". New table: \n";
-									rt_.print_table();
-								}
-								else {
-									cout << "\t[R" << RID << "][OUTSTANDING]. Old table: \n";
-									rt_.print_table();
-								}
-							}
-							else{
-								int IID = (dstport - 10500) % 1000;
-								int newnHops = m->get_packet_HOPS(p) + 1;
-								RTentry newentry(CID, IID, newnHops);
-								rt_.add_entry(newentry);
-								cout << "\t[R" << RID << "][ADD] CID = "<<  CID << ". New table: \n";
-								rt_.print_table();
-							}
-							break;
-						}
-						case 0: 	{//Message.TYPE_REQUEST
-							break;
-						}
-						case 1: 	{//Message.TYPE_RESPONSE
-							break;
-						}
-						default:
-							break;
-						}
+						boost::unique_lock<boost::mutex> lock(* queuemutex_ );
+						message_queue_.push(make_pair(IID, *p));
 					}
+					usleep(1000000);
 				}
-
 			}
 			catch(const char *reason ){
 			    cerr << "Exception:" << reason << endl;

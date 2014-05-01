@@ -9,6 +9,8 @@
 #define RT_H_
 
 #include <vector>
+#include <boost/thread.hpp>
+#include <boost/date_time.hpp>
 
 using namespace std;
 
@@ -46,6 +48,10 @@ class RT{
 private:
 	vector<RTentry> _table;
 public:
+	boost::mutex *_mutex;
+	RT(){
+		_mutex = new boost::mutex();
+	}
 	vector<RTentry> export_table();
 	void add_entry(RTentry entry);
 	RTentry *get_entry(int CID);

@@ -9,6 +9,7 @@
 #define ROUTER_H_
 
 #include <vector>
+#include <queue>
 #include <algorithm>
 #include <sstream>
 #include <sys/stat.h>
@@ -36,7 +37,9 @@ private:
 
 	PRT prt_;	//Pending request table
 	RT rt_;		//Routing table
+	queue<pair<int,Packet> > message_queue_;
 public:
+	boost::mutex *queuemutex_;
 	boost::mutex *prtmutex_;
 	boost::mutex *rtmutex_;
 	Router ();
@@ -52,5 +55,6 @@ public:
 	void cleaning_tables(int id, boost::mutex *m);
 	void router_send_message(int id, int srcport , int dstport, boost::mutex *m);
 	void router_receive_message(int id, int srcport, int dstport, boost::mutex *m);
+	void router_process_message();
 };
 #endif /* ROUTER_H_ */
