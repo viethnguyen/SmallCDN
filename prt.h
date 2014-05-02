@@ -9,13 +9,15 @@
 #define PRT_H_
 
 #include <vector>
+#include <boost/thread.hpp>
+#include <boost/date_time.hpp>
 
 using namespace std;
 
 class PRTentry{
 private:
-	const static int TIME_TO_REVISIT = 10;
-	const static int INITIAL_TTE 	= 1000;
+	const static int TIME_TO_REVISIT = 30;	// in seconds
+	const static int INITIAL_TTE 	= 100;
 	int _CID;		// Requested content ID
 	int _HID;		// Host ID
 	int _IID;		// Incoming interface ID
@@ -46,6 +48,13 @@ class PRT{
 private:
 	vector<PRTentry> _table;
 public:
+	boost::timed_mutex *_mutex;
+	PRT(){
+		_mutex = new boost::timed_mutex();
+	}
+	vector<PRTentry> export_table();
+	void import_table(vector<PRTentry> newTable);
+
 	void add_entry(PRTentry entry);
 	void update_table();
 	void print_table();

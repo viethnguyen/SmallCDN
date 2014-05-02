@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <sstream>
 #include <sys/stat.h>
+#include <boost/thread.hpp>
+#include <boost/date_time.hpp>
 #include "common.h"
 using namespace std;
 
@@ -23,7 +25,9 @@ class Host{
 	int receivingportfromrouter_;
 	int routerreceivingport_;
 	int routersendingport_;
+	vector<Packet> to_send_packets_;	/* store packets before sending */
 public:
+	boost::timed_mutex *to_send_packets_mutex_;
 	Host(int id);
 	void assign_router(int rid);
 	void assign_content(int cid);

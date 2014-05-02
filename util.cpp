@@ -32,7 +32,7 @@ void gen_content(){
 }
 
 int main(){
-	test_message();
-	//gen_content();
+	//test_message();
+	gen_content();
 	return 0;
 }

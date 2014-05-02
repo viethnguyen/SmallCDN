@@ -34,7 +34,7 @@ public:
 	Message();
 
 	Packet *make_request_packet(int CID, int HID);
-	Packet *make_response_packet(int CID, int HID, char *filename);
+	Packet *make_response_packet(int CID, int HID, const char *filename);
 	Packet *make_update_packet(int CID, int nhops);
 	int get_packet_type(Packet *p);
 	int get_packet_CID(Packet *p);

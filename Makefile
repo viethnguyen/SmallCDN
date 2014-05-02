@@ -28,7 +28,7 @@ message.o: message.h message.cpp
 host.o: host.h host.cpp
 	$(CC) $(CCOPTS) $(LIBS) -I $(BOOST_INCLUDE_DIR) -c host.cpp -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 	
-router.o: router.h router.cpp 
+router.o: router.h router.cpp  
 	$(CC) $(CCOPTS) $(LIBS) -I $(BOOST_INCLUDE_DIR) -c router.cpp -L$(BOOST_LIB_DIR) -l$(BOOST_LIB_THREAD) -l$(BOOST_LIB_SYSTEM) -l$(BOOST_LIB_CHRONO) -l$(BOOST_LIB_DATETIME)
 	
 content.o: content.h content.cpp

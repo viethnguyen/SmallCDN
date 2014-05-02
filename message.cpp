@@ -53,7 +53,7 @@ Packet *Message::make_request_packet(int CID, int HID){
 	// no payload
 	return request_packet;
 }
-Packet *Message::make_response_packet(int CID, int HID, char *filename){
+Packet *Message::make_response_packet(int CID, int HID, const char *filename){
 	Packet * response_packet;
 	response_packet = new Packet();
 
