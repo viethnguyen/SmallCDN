@@ -39,7 +39,7 @@ private:
 	RT rt_;		//Routing table
 	queue<pair<int,Packet> > message_queue_;
 public:
-	boost::mutex *queuemutex_;
+	boost::timed_mutex *queuemutex_;
 	boost::mutex *prtmutex_;
 	boost::mutex *rtmutex_;
 	Router ();

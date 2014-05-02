@@ -127,15 +127,16 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 				}
 
 				Message *m = new Message();
-				for(int i = 0; i < CIDs.size(); i++){
+				int n = CIDs.size();
+				for(int i = 0; i < n; i++){
 					Packet *update_packet = m->make_update_packet(CIDs[i], 0);
 					my_tx_port->sendPacket(update_packet);
 					int type = m->get_packet_type(update_packet);
 					cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
-					usleep(2000000);
+					usleep(1000000);
 				}
 
-				usleep(5000000);	// Sleep: in microseconds
+				usleep(10000000);	// Sleep: in microseconds
 			}
 		}
 		catch(const char *reason ){

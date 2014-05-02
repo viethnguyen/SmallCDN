@@ -16,62 +16,30 @@ void RTentry::updateTTE(){
 
 
 vector<RTentry> RT::export_table(){
-	boost::lock_guard<boost::mutex> lock(* _mutex);
-	// a little bit slow...
+	boost::unique_lock<boost::timed_mutex> lock(* _mutex, boost::try_to_lock);
 	vector<RTentry> res;
-	for(int i = 0; i < _table.size(); i++){
-		RTentry e(_table[i]);
-		res.push_back(e);
+	bool getLock = lock.owns_lock();
+	if(!getLock){
+		getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 	}
+	if(getLock){
+		res = _table;
+	}
+	boost::timed_mutex *m = lock.release();
+	m->unlock();
 	return res;
 }
 
-void RT::add_entry(RTentry entry){
-	boost::lock_guard<boost::mutex> lock(* _mutex);
-	_table.push_back(entry);
+void RT::import_table(vector<RTentry> newTable){
+	boost::unique_lock<boost::timed_mutex> lock(* _mutex, boost::try_to_lock);
+	bool getLock = lock.owns_lock();
+	if(!getLock){
+		getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
+	}
+	if(getLock){
+		_table = newTable;
+	}
+	boost::timed_mutex *m = lock.release();
+	m->unlock();
 }
 
-RTentry *RT::get_entry(int CID){
-	boost::lock_guard<boost::mutex> lock(* _mutex);
-	vector<RTentry>::iterator it = _table.begin();
-	while(it!=_table.end()){
-		if(it->getCID() == CID){
-			return &(*it);
-		}
-	}
-	return NULL;
-}
-
-void RT::delete_entry(int CID){
-	boost::lock_guard<boost::mutex> lock(* _mutex);
-	vector<RTentry>::iterator it = _table.begin();
-	while(it!= _table.end()){
-		if(it->getCID() == CID){
-			it = _table.erase(it);
-			break;
-		}
-	}
-}
-
-void RT::update_table(){
-	boost::lock_guard<boost::mutex> lock(* _mutex);
-	vector<RTentry>::iterator it = _table.begin();
-	while(it!=_table.end()){
-		it->updateTTE();
-		if(it->getTTE() <= 0){
-			it = _table.erase(it);
-		}else{
-			it++;
-		}
-	}
-}
-
-void RT::print_table(){
-	boost::lock_guard<boost::mutex> lock(* _mutex);
-	vector<RTentry>::iterator it = _table.begin();
-	cout << "Routing table: \n";
-	while(it!=_table.end()){
-		cout << "\t" << it->getCID() << "\t|\t" << it->getIID() << "\t|\t" << it->getnHops() << "\t|\t" << it->getTTE()  << "\n";
-		it++;
-	}
-}

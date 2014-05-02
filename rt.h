@@ -48,15 +48,11 @@ class RT{
 private:
 	vector<RTentry> _table;
 public:
-	boost::mutex *_mutex;
+	boost::timed_mutex *_mutex;
 	RT(){
-		_mutex = new boost::mutex();
+		_mutex = new boost::timed_mutex();
 	}
 	vector<RTentry> export_table();
-	void add_entry(RTentry entry);
-	RTentry *get_entry(int CID);
-	void delete_entry(int CID);
-	void update_table();
-	void print_table();
+	void import_table(vector<RTentry> newTable);
 };
 #endif /* RT_H_ */

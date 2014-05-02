@@ -20,13 +20,13 @@ Router::Router(){
 	rid_ = -1;
 	rtmutex_ = new boost::mutex();
 	prtmutex_ = new boost::mutex();
-	queuemutex_ = new boost::mutex();
+	queuemutex_ = new boost::timed_mutex();
 }
 Router::Router (int rid){
 	rid_ = rid;
 	rtmutex_ = new boost::mutex();
 	prtmutex_ = new boost::mutex();
-	queuemutex_ = new boost::mutex();
+	queuemutex_ = new boost::timed_mutex();
 }
 void Router::set_id(int rid){
 	rid_ = rid;
@@ -72,14 +72,19 @@ void Router::setup_link(){
 void Router::cleaning_tables(int RID, boost::mutex *mutex){
 	//scan the routing table and reduce Time to expire of all entries
 	while(1){
-		cout << "[R" << RID << "]CLEANING TABLES - After clean: \n";
-		{
-			//boost::unique_lock<boost::mutex> lock(*rtmutex_);
-			//boost::unique_lock<boost::mutex> lock(*mutex);
-			rt_.update_table();
-			rt_.print_table();
+		cout << "[R" << RID << "]CLEANING TABLES\n";
+		vector<RTentry> replica = rt_.export_table();
+		vector<RTentry>::iterator it = replica.begin();
+		while(it!=replica.end()){
+			it->updateTTE();
+			if(it->getTTE() <= 0){
+				it = replica.erase(it);
+			}else{
+				it++;
+			}
 		}
-		usleep(30000000);	//in microseconds
+		rt_.import_table(replica);
+		boost::this_thread::sleep(boost::posix_time::seconds(30));
 	}
 }
 
@@ -110,7 +115,7 @@ void Router::router_send_message(int RID, int srcport, int dstport, boost::mutex
 					my_tx_port->sendPacket(update_packet);
 					//cout << "[R" << RID << "] Send new update packet CID = "<<  v[i].getCID() << "\n";
 				}
-				usleep(5000000);	// Sleep: in microseconds
+				boost::this_thread::sleep(boost::posix_time::seconds(12));
 			}
 
 		}
@@ -125,18 +130,27 @@ void Router::router_process_message(){
 		while(1){
 			cout << "[R" << rid_ << "] ROUTER PROCESS MESSAGE\n";
 			pair<int, Packet> message;
-			bool isMessageAvailable = false;
+			int queue_size = 0;
 			{
-				boost::unique_lock<boost::mutex> lock(* queuemutex_ );
-				if(message_queue_.size() != 0){
-					isMessageAvailable = true;
-					message = message_queue_.front();
-					message_queue_.pop();
+				boost::unique_lock<boost::timed_mutex> lock(* queuemutex_ , boost::try_to_lock);
+				bool getLock = lock.owns_lock();
+				if(!getLock){
+					getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 				}
-			}
+				if(getLock){
+					queue_size = message_queue_.size();
+					if(queue_size != 0){
+						message = message_queue_.front();
+						message_queue_.pop();
+					}
+				}
+				boost::timed_mutex *m = lock.release();
+				m->unlock();
 
-			if(! isMessageAvailable){
-				usleep(2000000);
+			}
+			cout << "[R" << rid_ << "][In Process] Messages in queue: " << queue_size << "\n";
+			if(queue_size == 0){
+				boost::this_thread::sleep(boost::posix_time::seconds(1));
 				continue;
 			}
 
@@ -146,34 +160,46 @@ void Router::router_process_message(){
 			Message *m = new Message();
 			int type = m->get_packet_type(p);
 			int CID = m->get_packet_CID(p);
-			cout << "[R" << rid_ << "]Receive a message: Type: " << type << ". Content ID: " << CID << "\n";
+			cout << "[R" << rid_ << "] [Process message] Type: " << type << "Interface ID: " << IID <<". Content ID: " << CID << "\n";
 
 			switch(type){
 			case 2:		{//Message.TYPE_UPDATE
-				RTentry *entry = rt_.get_entry(CID);
-				cout << "Looked up if an entry with CID = " << CID << " exist...";
-				if(entry!=NULL){
-					int oldnHops = entry->getnHops();
-					int newnHops = m->get_packet_HOPS(p) + 1;
-					if(newnHops < oldnHops ){
-						rt_.delete_entry(CID);
-						RTentry newentry(CID, IID, newnHops);
-						rt_.add_entry(newentry);
-						cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". New table: \n";
-						rt_.print_table();
+				vector<RTentry> replica = rt_.export_table();
+				vector<RTentry>::iterator it = replica.begin();
+				cout << "\t\t\t[Current Routing table]\n";
+				while(it!=replica.end()){
+					cout << "\t\t\tCID = " << it->getCID() << ". IID = " << it->getIID() << ". nHops = " << it->getnHops() << ". TTE: " << it->getTTE()<< "\n";
+					it++;
+				}
+				it = replica.begin();
+				while(it!=replica.end()){
+					if(it->getCID() == CID){
+						break;
 					}
-					else {
-						cout << "\t[R" << rid_ << "][OUTSTANDING]. Old table: \n";
-						rt_.print_table();
+					it++;
+				}
+				if(it!=replica.end()){
+					int oldnHops = it->getnHops();
+					int newnHops = m->get_packet_HOPS(p) + 1;
+					if(newnHops < oldnHops){
+						replica.erase(it);
+						RTentry newentry(CID, IID, newnHops);
+						replica.push_back(newentry);
+						cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << "\n";
+					}
+					else{
+						cout << "\t[R" << rid_ << "][OUTSTANDING]. \n";
 					}
 				}
 				else{
 					int newnHops = m->get_packet_HOPS(p) + 1;
 					RTentry newentry(CID, IID, newnHops);
-					rt_.add_entry(newentry);
-					cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". New table: \n";
-					rt_.print_table();
+					replica.push_back(newentry);
+					cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". \n";
 				}
+
+				rt_.import_table(replica);
+
 				break;
 			}
 			case 0: 	{//Message.TYPE_REQUEST
@@ -185,7 +211,7 @@ void Router::router_process_message(){
 			default:
 				break;
 			}
-			usleep(2000000);
+			boost::this_thread::sleep(boost::posix_time::seconds(1));
 		}
 
 	}catch(const char *reason ){
@@ -211,10 +237,20 @@ void Router::router_receive_message(int RID, int srcport, int dstport, boost::mu
 					p = my_port->receivePacket();
 					int IID = (dstport - 10500) % 1000;
 					if(p!=NULL){
-						boost::unique_lock<boost::mutex> lock(* queuemutex_ );
-						message_queue_.push(make_pair(IID, *p));
+						boost::unique_lock<boost::timed_mutex> lock(* queuemutex_ , boost::try_to_lock);
+						bool getLock = lock.owns_lock();
+						/*
+						if(!getLock){
+							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
+						}*/
+						if(getLock){
+							message_queue_.push(make_pair(IID, *p));
+							cout << "[R" << RID <<"] Push new message to queue. Messages in queue: " << message_queue_.size() << "\n";
+						}
+						boost::timed_mutex *m = lock.release();
+						m->unlock();
 					}
-					usleep(1000000);
+					boost::this_thread::sleep(boost::posix_time::seconds(1));
 				}
 			}
 			catch(const char *reason ){
