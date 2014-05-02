@@ -206,7 +206,7 @@ void Router::router_process_message(){
 			Message *m = new Message();
 			int type = m->get_packet_type(p);
 			int CID = m->get_packet_CID(p);
-			cout << "[R" << rid_ << "] [Process message] Type: " << type << "Interface ID: " << IID <<". Content ID: " << CID << "\n";
+			cout << "[R" << rid_ << "] [Process message] Type: " << type << ". IID: " << IID <<". Content ID: " << CID << "\n";
 
 			switch(type){
 			/*

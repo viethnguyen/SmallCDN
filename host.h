@@ -25,8 +25,9 @@ class Host{
 	int receivingportfromrouter_;
 	int routerreceivingport_;
 	int routersendingport_;
-	vector<Packet> to_send_packets_;	/* store packets before sending */
 public:
+	vector<Packet> to_send_packets_;	/* store packets before sending */
+	bool isWaiting;		/* is this host waiting for content? */
 	boost::timed_mutex *to_send_packets_mutex_;
 	Host(int id);
 	void assign_router(int rid);

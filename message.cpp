@@ -69,7 +69,7 @@ Packet *Message::make_response_packet(int CID, int HID, const char *filename){
 
 	//Header
 	PacketHdr *hdr = response_packet->accessHeader();
-	hdr->setOctet(TYPE_REQUEST, POS_TYPE );
+	hdr->setOctet(TYPE_RESPONSE, POS_TYPE );
 	hdr->setOctet(CID, POS_CID );
 	hdr->setOctet(HID, POS_HID );
 	hdr->setShortIntegerInfo(len, POS_SIZE);

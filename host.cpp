@@ -39,6 +39,9 @@ Host::Host(int id){
 	char const* foldername = temp_str.c_str();
 	mkdir(foldername, S_IRWXU|S_IRGRP|S_IXGRP);
 
+	/* init state */
+	isWaiting = false;
+
 	/* init mutex */
 	to_send_packets_mutex_ = new boost::timed_mutex();
 }
@@ -92,7 +95,7 @@ void Host::copycontent(const char *infile, const char *outfile){
 
 void Host::host_send_message(int HID, int srcport, int dstport){
 	try{
-		cout << "[HOST SEND THREAD] From: " << srcport << ". To: " << dstport << "\n";
+		//cout << "[HOST SEND THREAD] From: " << srcport << ". To: " << dstport << "\n";
 		/* configure a sending port */
 		const char* hname = "localhost";
 		Address * my_tx_addr = new Address(hname, (short)srcport);
@@ -101,6 +104,9 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 		my_tx_port->setAddress(my_tx_addr);
 		my_tx_port->setRemoteAddress(dst_addr);
 		my_tx_port->init();
+
+
+		Message *m = new Message();
 
 		while(1){
 			/* check if there is any message needs to send ... */
@@ -114,12 +120,14 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 					vector<Packet>::iterator it = to_send_packets_.begin();
 					while(it != to_send_packets_.end()){
 						my_tx_port->sendPacket(&*it);
+						cout << "[H" << id_ << "] Send packet. Type = " << m->get_packet_type(&*it) << "\n";
 						it = to_send_packets_.erase(it);
 					}
 				}
 				boost::timed_mutex *m = lock.release();
 				m->unlock();
 			}
+			boost::this_thread::sleep(boost::posix_time::seconds(1));
 
 			/* scan to see which contents this host has, then announce ... */
 			ostringstream dest;
@@ -139,7 +147,6 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 					if(S_ISDIR(filestat.st_mode))	continue;
 
 					string sCID = filename.substr(8, filename.length() - 8);
-					cout << sCID << "\n";
 					int CID = atoi(sCID.c_str());
 					CIDs.push_back(CID);
 				}
@@ -153,7 +160,7 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 				Packet *update_packet = m->make_update_packet(CIDs[i], 0);
 				my_tx_port->sendPacket(update_packet);
 				int type = m->get_packet_type(update_packet);
-				cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
+				//cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
 				boost::this_thread::sleep(boost::posix_time::seconds(1));
 			}
 
@@ -169,7 +176,7 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 
 void Host::host_receive_message(int HID, int srcport, int dstport){
 	try{
-		cout << "[HOST RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+		//cout << "[HOST RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 		//configure receiving port
 		const char* hname = "localhost";
 		Address * my_addr = new Address(hname, (short)dstport);
@@ -215,7 +222,12 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 				* Message.TYPE_RESPONSE
 				*/
 				case 1:{
-					/* store the content to disk  */
+					/* if this host is not waiting, discard */
+					if(!isWaiting){
+						break;
+					}
+
+					/* else, store the content to disk  */
 					int size = p->getPayloadSize();
 					char *payload = p->getPayload();
 					int CID = m->get_packet_CID(p);
@@ -223,6 +235,8 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 					ofstream outfile(c.get_content_name_in_host(id_, CID).c_str());
 					outfile.write(payload, size);
 					outfile.close();
+					isWaiting = false;
+					//cout << "[H" << id_ << "] Received content ID = " << CID << "\n";
 					break;
 				}
 				}
@@ -255,15 +269,48 @@ int main(){
 	cin >> hid;
 	cout << "Enter default router ID: ";
 	cin >> rid;
-	cout << "Assign content IDs: ";
-	cin >> cid;
 	Host h(hid);
 	h.assign_router(rid);
-	h.assign_content(cid);
-
 	h.setup_link();
+
 	while(1){
-		// Do nothing, let the processes do their jobs
+		cout << "Request content IDs: ";
+		cin >> cid;
+
+		/* make a request packet */
+		Message *m = new Message();
+		Packet *p = m->make_request_packet(cid, hid);
+
+		/* queue the REQUEST packet to the sending_queue */
+		{
+			boost::unique_lock<boost::timed_mutex> lock(* (h.to_send_packets_mutex_) , boost::try_to_lock);
+			bool getLock = lock.owns_lock();
+			if(!getLock){
+				getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
+			}
+			if(getLock){
+				h.to_send_packets_.push_back(*p);
+				h.isWaiting = true;
+
+				/* sleep, waiting */
+				cout << "Waiting ... \n";
+				boost::this_thread::sleep(boost::posix_time::seconds(10));
+			}
+			else{
+				cout << "Unable to send request. Please re-try... \n";
+				continue;
+			}
+			boost::timed_mutex *m = lock.release();
+			m->unlock();
+		}
+
+		if(h.isWaiting = false){
+			cout << "Content has been delivered! \n";
+		}
+		else{
+			cout << "Content has not been delivered. Please re-try... \n";
+		}
+
 	}
 
 
