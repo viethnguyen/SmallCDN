@@ -70,7 +70,7 @@ void Router::setup_link(){
 void Router::cleaning_tables(int RID){
 	//scan the routing table and reduce Time to expire of all entries
 	while(1){
-		cout << "[R" << RID << "]CLEANING TABLES\n";
+		//cout << "[R" << RID << "]CLEANING TABLES\n";
 
 		/* cleaning routing table */
 		vector<RTentry> rtcopy = rt_.export_table();
@@ -99,13 +99,13 @@ void Router::cleaning_tables(int RID){
 		prt_.import_table(prtcopy);
 
 		/* sleep */
-		boost::this_thread::sleep(boost::posix_time::seconds(30));
+		boost::this_thread::sleep(boost::posix_time::seconds(5));
 	}
 }
 
 void Router::router_send_message(int RID, int srcport, int dstport){
 	try{
-		cout << "[ROUTER SEND THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+		//cout << "[ROUTER SEND THREAD] From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 		/* configure a sending port */
 		const char* hname = "localhost";
 		Address * my_tx_addr = new Address(hname, (short)srcport);
@@ -116,14 +116,22 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 		my_tx_port->init();
 
 		/* calculate the interface id of this sending thread */
-		int IID = (dstport - 10500) % 1000;
+		int IID = (srcport - 10000) % 1000;
 		if(IID > 256){
 			IID = 498;
 		}
 
+		Message *m = new Message();
+
+		int timecount = 0;
+
 		while(1){
+			timecount ++;
+			//cout << "[R" << rid_ << "] [Send] Timecount = " << timecount << "\n";
 			/* send request/ response packet, if any */
 			{
+
+				//cout << "\t\t[R" << RID <<"][Send]IID = " << IID << ". srcport =" << srcport << "\n";
 				/* try to acquire the to send message queue lock, then send the packets with destination port of this sending thread */
 				boost::unique_lock<boost::timed_mutex> lock(* to_send_packets_mutex_ , boost::try_to_lock);
 				bool getLock = lock.owns_lock();
@@ -131,10 +139,11 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 					getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 				}
 				if(getLock){
-					vector<pair<int, Packet> >::iterator it = to_send_packets_.begin();
+					vector<pair<int, Packet *> >::iterator it = to_send_packets_.begin();
 					while(it != to_send_packets_.end()){
-						if(it->first == dstport ){
-							my_tx_port->sendPacket(&it->second);
+						cout << "\t\t[R" << RID <<"][Send] IID = " << it->first << ".Type : " << m->get_packet_type(it->second) << ". CID = " << m->get_packet_CID(it->second) << "\n";
+						if(it->first == IID ){
+							my_tx_port->sendPacket(it->second);
 							it = to_send_packets_.erase(it);
 						}
 						else{
@@ -145,8 +154,15 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 				boost::timed_mutex *mu = lock.release();
 				mu->unlock();
 			}
+			boost::this_thread::sleep(boost::posix_time::seconds(1));
+
+			if (timecount < 12) continue;
 
 			/* send update packet */
+			if(IID == 498) {
+				timecount = 0;	/* Don't send to host */
+				continue;
+			}
 			vector<RTentry> v;
 			{
 				v = rt_.export_table();
@@ -157,9 +173,10 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 				Message *m = new Message();
 				Packet *update_packet =m->make_update_packet(v[i].getCID(), v[i].getnHops());
 				my_tx_port->sendPacket(update_packet);
-				//cout << "[R" << RID << "] Send new update packet CID = "<<  v[i].getCID() << "\n";
+				cout << "[R" << RID << "] Send new update packet CID = "<<  v[i].getCID() << "to IID = " << IID << "\n";
 			}
-			boost::this_thread::sleep(boost::posix_time::seconds(12));
+
+			timecount = 0;
 		}
 
 	}
@@ -172,8 +189,8 @@ void Router::router_send_message(int RID, int srcport, int dstport){
 void Router::router_process_message(){
 	try{
 		while(1){
-			cout << "[R" << rid_ << "] ROUTER PROCESS MESSAGE\n";
-			pair<int, Packet> message;
+			//cout << "[R" << rid_ << "] ROUTER PROCESS MESSAGE\n";
+			pair<int, Packet *> message;
 			int queue_size = 0;
 
 			{
@@ -194,14 +211,14 @@ void Router::router_process_message(){
 				m->unlock();
 			}
 
-			cout << "[R" << rid_ << "][In Process] Messages in queue: " << queue_size << "\n";
+			//cout << "[R" << rid_ << "][In Process] Messages in queue: " << queue_size << "\n";
 			if(queue_size == 0){
 				boost::this_thread::sleep(boost::posix_time::seconds(1));
 				continue;
 			}
 
 			int IID = message.first;
-			Packet *p = &(message.second);
+			Packet *p = message.second;
 
 			Message *m = new Message();
 			int type = m->get_packet_type(p);
@@ -234,21 +251,20 @@ void Router::router_process_message(){
 						replica.erase(it);
 						RTentry newentry(CID, IID, newnHops);
 						replica.push_back(newentry);
-						cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << "\n";
+						//cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << "\n";
 					}
 					else{
-						cout << "\t[R" << rid_ << "][OUTSTANDING]. \n";
+						//cout << "\t[R" << rid_ << "][OUTSTANDING]. \n";
 					}
 				}
 				else{
 					int newnHops = m->get_packet_HOPS(p) + 1;
 					RTentry newentry(CID, IID, newnHops);
 					replica.push_back(newentry);
-					cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". \n";
+					//cout << "\t[R" << rid_ << "][ADD] CID = "<<  CID << ". \n";
 				}
 
 				rt_.import_table(replica);
-
 				break;
 			}
 
@@ -285,8 +301,6 @@ void Router::router_process_message(){
 				if(rt_it != rtcopy.end()){
 					int interface_to_send = rt_it->getIID();
 
-					/* calculate the destination port to send to */
-					int destport = 10000 + interface_to_send * 1000 + 500 + rid_ ;
 
 					{
 						/* try to acquire the to send message queue lock, and add this message to the queue */
@@ -296,7 +310,7 @@ void Router::router_process_message(){
 							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 						}
 						if(getLock){
-							to_send_packets_.push_back(make_pair(destport, *p));
+							to_send_packets_.push_back(make_pair(interface_to_send, p));
 						}
 						boost::timed_mutex *mu = lock.release();
 						mu->unlock();
@@ -324,10 +338,6 @@ void Router::router_process_message(){
 
 				if(it!= prtcopy.end() ){
 					int interface_to_send = it->getIID();
-
-					/* calculate the destination port to send to */
-					int destport = 10000 + interface_to_send * 1000 + 500 + rid_ ;
-
 					{
 						/* try to acquire the to send message queue lock, and add this message to the queue*/
 						boost::unique_lock<boost::timed_mutex> lock(* to_send_packets_mutex_ , boost::try_to_lock);
@@ -336,7 +346,8 @@ void Router::router_process_message(){
 							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 						}
 						if(getLock){
-							to_send_packets_.push_back(make_pair(destport, *p));
+							cout << "[R" << rid_ << "]Push back: Type = " << m->get_packet_type(p) << ". CID = " << m->get_packet_CID(p) << "\n";
+							to_send_packets_.push_back(make_pair(interface_to_send, p));
 						}
 						boost::timed_mutex *mu = lock.release();
 						mu->unlock();
@@ -362,11 +373,11 @@ void Router::router_process_message(){
 
 void Router::router_receive_message(int RID, int srcport, int dstport){
 	try{
-				cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+				//cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
 				//configure receiving port
 				const char* hname = "localhost";
 				Address * my_addr = new Address(hname, (short)dstport);
-				LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
+				LossyReceivingPort *my_port = new LossyReceivingPort(0);
 				my_port->setAddress(my_addr);
 				my_port->init();
 
@@ -381,10 +392,11 @@ void Router::router_receive_message(int RID, int srcport, int dstport){
 						/*
 						if(!getLock){
 							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
-						}*/
+						}
+						*/
 						if(getLock){
-							message_queue_.push(make_pair(IID, *p));
-							cout << "[R" << RID <<"] Push new message to queue. Messages in queue: " << message_queue_.size() << "\n";
+							message_queue_.push(make_pair(IID, p));
+							//cout << "[R" << RID <<"] Push new message to queue. Messages in queue: " << message_queue_.size() << "\n";
 						}
 						boost::timed_mutex *m = lock.release();
 						m->unlock();
@@ -401,30 +413,3 @@ void Router::router_receive_message(int RID, int srcport, int dstport){
 void Router::shutdown(){
 }
 
-
-/*
- * FOR TEST
- */
-/*
-int main(){
-	int rid, hid, nrid;
-	cout << "Enter router id: ";
-	cin >> rid;
-	cout << "Enter host id:";
-	cin >> hid;
-	cout << "Enter neighbor router id: ";
-	cin >> nrid;
-
-	Router r(rid);
-	r.assign_nr(nrid);
-	r.assign_host(hid);
-	r.calc_port_no();
-
-	// Test: receive from its host
-	r.setup_link();
-
-	while(1){
-		//Do nothing, let the processes do their jobs
-	}
-}
-*/

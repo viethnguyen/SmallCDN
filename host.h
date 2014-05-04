@@ -26,18 +26,21 @@ class Host{
 	int routerreceivingport_;
 	int routersendingport_;
 public:
-	vector<Packet> to_send_packets_;	/* store packets before sending */
+	vector<Packet *> to_send_packets_;	/* store packets before sending */
 	bool isWaiting;		/* is this host waiting for content? */
 	boost::timed_mutex *to_send_packets_mutex_;
 	Host(int id);
 	void assign_router(int rid);
 	void assign_content(int cid);
 	void delete_content(int cid);
-	void host_send_message( int id, int srcport, int dstport);
-	void host_receive_message(int id, int srcport, int dstport);
+	void request_content(int cid);
 	void shutdown();
 	void copycontent(const char *infile, const char *outfile);
 	void setup_link();
+
+	/* thread functions */
+	void host_send_message( int id, int srcport, int dstport);
+	void host_receive_message(int id, int srcport, int dstport);
 };
 
 #endif /* HOST_H_ */

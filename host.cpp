@@ -93,6 +93,29 @@ void Host::copycontent(const char *infile, const char *outfile){
 	copy (begin, end, begin2);
 }
 
+
+void Host::request_content(int cid){
+	/* make a request packet */
+	Message *m = new Message();
+	Packet *p = m->make_request_packet(cid, id_);
+
+	/* queue the REQUEST packet to the sending_queue */
+	{
+		boost::unique_lock<boost::timed_mutex> lock(* (to_send_packets_mutex_) , boost::try_to_lock);
+		bool getLock = lock.owns_lock();
+		if(!getLock){
+			getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
+		}
+		if(getLock){
+			to_send_packets_.push_back(p);
+			isWaiting = true;
+		}
+
+		boost::timed_mutex *m = lock.release();
+		m->unlock();
+	}
+}
+
 void Host::host_send_message(int HID, int srcport, int dstport){
 	try{
 		//cout << "[HOST SEND THREAD] From: " << srcport << ". To: " << dstport << "\n";
@@ -108,7 +131,11 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 
 		Message *m = new Message();
 
+		int timecount = 0;
 		while(1){
+
+			timecount ++;
+			//cout << "[H" << id_ << "] [Send] Timecount = " << timecount << "\n";
 			/* check if there is any message needs to send ... */
 			{
 				boost::unique_lock<boost::timed_mutex> lock(* to_send_packets_mutex_ , boost::try_to_lock);
@@ -117,10 +144,10 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 					getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 				}
 				if(getLock){
-					vector<Packet>::iterator it = to_send_packets_.begin();
+					vector<Packet *>::iterator it = to_send_packets_.begin();
 					while(it != to_send_packets_.end()){
-						my_tx_port->sendPacket(&*it);
-						cout << "[H" << id_ << "] Send packet. Type = " << m->get_packet_type(&*it) << "\n";
+						my_tx_port->sendPacket(*it);
+						cout << "[H" << id_ << "] Send packet. Type = " << m->get_packet_type(*it) << "\n";
 						it = to_send_packets_.erase(it);
 					}
 				}
@@ -128,6 +155,8 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 				m->unlock();
 			}
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
+
+			if (timecount < 10) continue;	/* does not have to announce content yet... */
 
 			/* scan to see which contents this host has, then announce ... */
 			ostringstream dest;
@@ -159,13 +188,12 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 			for(int i = 0; i < n; i++){
 				Packet *update_packet = m->make_update_packet(CIDs[i], 0);
 				my_tx_port->sendPacket(update_packet);
-				int type = m->get_packet_type(update_packet);
+				//int type = m->get_packet_type(update_packet);
 				//cout << "[H" << HID << "]Send a message of type: " << type << ". CID = " << CIDs[i] << ". From port " << srcport << " to port " << dstport << "\n";
-				boost::this_thread::sleep(boost::posix_time::seconds(1));
+				//boost::this_thread::sleep(boost::posix_time::seconds(1));
 			}
 
-			/* sleep */
-			boost::this_thread::sleep(boost::posix_time::seconds(10));
+			timecount = 0;
 		}
 	}
 	catch(const char *reason ){
@@ -180,7 +208,7 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 		//configure receiving port
 		const char* hname = "localhost";
 		Address * my_addr = new Address(hname, (short)dstport);
-		LossyReceivingPort *my_port = new LossyReceivingPort(0.2);
+		LossyReceivingPort *my_port = new LossyReceivingPort(0);
 		my_port->setAddress(my_addr);
 		my_port->init();
 
@@ -191,6 +219,7 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 			p = my_port->receivePacket();
 			if(p!=NULL){
 				int type = m->get_packet_type(p);
+				cout << "[H" << id_ << "] Received message of type: " << type << "\n";
 				switch (type){
 				/*
 				 * Message.TYPE_REQUEST
@@ -211,7 +240,7 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 						}
 						if(getLock){
-							to_send_packets_.push_back(*p);
+							to_send_packets_.push_back(p);
 						}
 						boost::timed_mutex *m = lock.release();
 						m->unlock();
@@ -277,32 +306,10 @@ int main(){
 		cout << "Request content IDs: ";
 		cin >> cid;
 
-		/* make a request packet */
-		Message *m = new Message();
-		Packet *p = m->make_request_packet(cid, hid);
-
-		/* queue the REQUEST packet to the sending_queue */
-		{
-			boost::unique_lock<boost::timed_mutex> lock(* (h.to_send_packets_mutex_) , boost::try_to_lock);
-			bool getLock = lock.owns_lock();
-			if(!getLock){
-				getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
-			}
-			if(getLock){
-				h.to_send_packets_.push_back(*p);
-				h.isWaiting = true;
-
-				/* sleep, waiting */
-				cout << "Waiting ... \n";
-				boost::this_thread::sleep(boost::posix_time::seconds(10));
-			}
-			else{
-				cout << "Unable to send request. Please re-try... \n";
-				continue;
-			}
-			boost::timed_mutex *m = lock.release();
-			m->unlock();
-		}
+		h.request_content(cid);
+		/* sleep, waiting */
+		cout << "Waiting ... \n";
+		boost::this_thread::sleep(boost::posix_time::seconds(40));
 
 		if(h.isWaiting = false){
 			cout << "Content has been delivered! \n";

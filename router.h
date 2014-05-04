@@ -37,8 +37,8 @@ private:
 
 	PRT prt_;	/* Pending request table */
 	RT rt_;		/* Routing table */
-	queue<pair<int,Packet> > message_queue_;
-	vector<pair<int, Packet> > to_send_packets_;	/* store packets before sending */
+	queue<pair<int,Packet *> > message_queue_;
+	vector<pair<int, Packet *> > to_send_packets_;	/* store packets before sending */
 public:
 	boost::timed_mutex *queuemutex_;
 	boost::timed_mutex *to_send_packets_mutex_;

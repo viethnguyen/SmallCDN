@@ -16,7 +16,7 @@ using namespace std;
 
 class RTentry{
 private:
-	const static int TIME_TO_REVISIT = 30;	// in seconds
+	const static int TIME_TO_REVISIT = 5;	// in seconds
 	const static int INITIAL_TTE = 100;
 	int _CID;		//Content ID
 	int _IID;		//Interface ID
