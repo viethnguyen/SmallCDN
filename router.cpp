@@ -231,11 +231,22 @@ void Router::router_process_message(){
 			 */
 			case 2:		{
 				vector<RTentry> replica = rt_.export_table();
+				vector<PRTentry> prtcopy = prt_.export_table();
 				vector<RTentry>::iterator it = replica.begin();
+
+				/* print routing table */
 				cout << "\t\t\t[Current Routing table]\n";
 				while(it!=replica.end()){
 					cout << "\t\t\tCID = " << it->getCID() << ". IID = " << it->getIID() << ". nHops = " << it->getnHops() << ". TTE: " << it->getTTE()<< "\n";
 					it++;
+				}
+				if(prtcopy.size() > 0){
+					vector<PRTentry>::iterator prt_it = prtcopy.begin();
+					cout << "\t\t\t[Current PRT]\n";
+					while(prt_it!= prtcopy.end()){
+						cout << "\t\t\t\tCID = " << prt_it->getCID() << ". HID = " << prt_it->getHID()<< ". IID = " << prt_it->getIID()<< ". TTE: " << prt_it->getTTE()<< "\n";
+						prt_it++;
+					}
 				}
 				it = replica.begin();
 				while(it!=replica.end()){
@@ -346,7 +357,7 @@ void Router::router_process_message(){
 							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 						}
 						if(getLock){
-							cout << "[R" << rid_ << "]Push back: Type = " << m->get_packet_type(p) << ". CID = " << m->get_packet_CID(p) << "\n";
+							//cout << "[R" << rid_ << "]Push back: Type = " << m->get_packet_type(p) << ". CID = " << m->get_packet_CID(p) << "\n";
 							to_send_packets_.push_back(make_pair(interface_to_send, p));
 						}
 						boost::timed_mutex *mu = lock.release();
@@ -377,7 +388,8 @@ void Router::router_receive_message(int RID, int srcport, int dstport){
 				//configure receiving port
 				const char* hname = "localhost";
 				Address * my_addr = new Address(hname, (short)dstport);
-				LossyReceivingPort *my_port = new LossyReceivingPort(0);
+				//LossyReceivingPort *my_port = new LossyReceivingPort(0);
+				ReceivingPort *my_port = new ReceivingPort();
 				my_port->setAddress(my_addr);
 				my_port->init();
 

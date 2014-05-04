@@ -41,3 +41,14 @@ string Content::get_content_name_in_host(int hid, int cid){
 	string destfile = dest.str() + s;
 	return destfile;
 }
+
+string Content::get_content_name_in_store(int hid, int cid){
+	Content c;
+	ostringstream dest;
+	dest << "store";
+	dest << hid;
+	dest << "/";
+	string s = c.get_content_name(cid);
+	string destfile = dest.str() + s;
+	return destfile;
+}

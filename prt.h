@@ -16,8 +16,8 @@ using namespace std;
 
 class PRTentry{
 private:
-	const static int TIME_TO_REVISIT = 30;	// in seconds
-	const static int INITIAL_TTE 	= 100;
+	const static int TIME_TO_REVISIT = 5;	// in seconds
+	const static int INITIAL_TTE 	= 60;
 	int _CID;		// Requested content ID
 	int _HID;		// Host ID
 	int _IID;		// Incoming interface ID

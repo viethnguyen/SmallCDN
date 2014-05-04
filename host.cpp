@@ -39,6 +39,14 @@ Host::Host(int id){
 	char const* foldername = temp_str.c_str();
 	mkdir(foldername, S_IRWXU|S_IRGRP|S_IXGRP);
 
+	/*create store folder */
+	stringstream strs2;
+	strs2 << "store";
+	strs2 << id;
+	string temp_str2 = strs2.str();
+	char const* foldername2 = temp_str2.c_str();
+	mkdir(foldername2, S_IRWXU|S_IRGRP|S_IXGRP);
+
 	/* init state */
 	isWaiting = false;
 
@@ -147,7 +155,7 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 					vector<Packet *>::iterator it = to_send_packets_.begin();
 					while(it != to_send_packets_.end()){
 						my_tx_port->sendPacket(*it);
-						cout << "[H" << id_ << "] Send packet. Type = " << m->get_packet_type(*it) << "\n";
+						//cout << "[H" << id_ << "] [Send] Type = " << m->get_packet_type(*it) << "\n";
 						it = to_send_packets_.erase(it);
 					}
 				}
@@ -208,7 +216,8 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 		//configure receiving port
 		const char* hname = "localhost";
 		Address * my_addr = new Address(hname, (short)dstport);
-		LossyReceivingPort *my_port = new LossyReceivingPort(0);
+		//LossyReceivingPort *my_port = new LossyReceivingPort(0);
+		ReceivingPort *my_port = new ReceivingPort();
 		my_port->setAddress(my_addr);
 		my_port->init();
 
@@ -219,7 +228,7 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 			p = my_port->receivePacket();
 			if(p!=NULL){
 				int type = m->get_packet_type(p);
-				cout << "[H" << id_ << "] Received message of type: " << type << "\n";
+				//cout << "[H" << id_ << "] [Received] Type: " << type << "\n";
 				switch (type){
 				/*
 				 * Message.TYPE_REQUEST
@@ -230,6 +239,8 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 					int HID = m->get_packet_HID(p);
 					Content c;
 					string filename = c.get_content_name_in_host(id_,CID);
+					struct stat buffer;
+					if(stat(filename.c_str(), &buffer) != 0) break;	/* if this file doesn't exist, do nothing... */
 					Packet *p = m->make_response_packet(CID, HID, filename.c_str());
 
 					/* queue the RESPONSE packet to the sending_queue */
@@ -261,11 +272,11 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 					char *payload = p->getPayload();
 					int CID = m->get_packet_CID(p);
 					Content c;
-					ofstream outfile(c.get_content_name_in_host(id_, CID).c_str());
+					ofstream outfile(c.get_content_name_in_store(id_, CID).c_str());
 					outfile.write(payload, size);
 					outfile.close();
 					isWaiting = false;
-					//cout << "[H" << id_ << "] Received content ID = " << CID << "\n";
+					cout << "\n[H" << id_ << "]Content CID = " << CID << " has been delivered! \n";
 					break;
 				}
 				}
@@ -307,16 +318,16 @@ int main(){
 		cin >> cid;
 
 		h.request_content(cid);
-		/* sleep, waiting */
-		cout << "Waiting ... \n";
-		boost::this_thread::sleep(boost::posix_time::seconds(40));
+		//boost::this_thread::sleep(boost::posix_time::seconds(40));
 
+		/*
 		if(h.isWaiting = false){
 			cout << "Content has been delivered! \n";
 		}
 		else{
 			cout << "Content has not been delivered. Please re-try... \n";
 		}
+		*/
 
 	}
 
