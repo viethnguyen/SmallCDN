@@ -54,9 +54,5 @@ public:
 	}
 	vector<PRTentry> export_table();
 	void import_table(vector<PRTentry> newTable);
-
-	void add_entry(PRTentry entry);
-	void update_table();
-	void print_table();
 };
 #endif /* PRT_H_ */
