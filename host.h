@@ -14,6 +14,8 @@
 #include <sys/stat.h>
 #include <boost/thread.hpp>
 #include <boost/date_time.hpp>
+#include <string>
+#include <iostream>
 #include "common.h"
 using namespace std;
 

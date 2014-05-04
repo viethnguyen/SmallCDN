@@ -17,10 +17,10 @@ public:
   {
     if (!ackflag_)
       {       
-       cout << "The last sent packet has not been acknowledged yet. Re-send..." <<endl; 
+       cout << "The last request has not been served yet. Re-send...\n" ;
        sendPacket(lastPkt_);       
        //schedule a timer again
-       timer_.startTimer(2.5);
+       timer_.startTimer(5);
       }              
   }  
 private:

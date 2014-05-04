@@ -31,6 +31,7 @@ using namespace std;
 Host::Host(int id){
 	id_ = id;
 	rid_ = -1;
+
 	/* create folder */
 	stringstream strs;
 	strs << "host";
@@ -139,11 +140,15 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 
 		Message *m = new Message();
 
-		int timecount = 0;
+		int timecount = 10;
 		while(1){
-
 			timecount ++;
 			//cout << "[H" << id_ << "] [Send] Timecount = " << timecount << "\n";
+
+			if(!isWaiting){
+				my_tx_port->setACKflag(true);
+			}
+
 			/* check if there is any message needs to send ... */
 			{
 				boost::unique_lock<boost::timed_mutex> lock(* to_send_packets_mutex_ , boost::try_to_lock);
@@ -155,6 +160,13 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 					vector<Packet *>::iterator it = to_send_packets_.begin();
 					while(it != to_send_packets_.end()){
 						my_tx_port->sendPacket(*it);
+						if(m->get_packet_type(*it) == 0){
+							my_tx_port->lastPkt_ = *it;
+							my_tx_port->setACKflag(false);
+							isWaiting = true;
+							//schedule retransmit
+							my_tx_port->timer_.startTimer(5);
+						}
 						//cout << "[H" << id_ << "] [Send] Type = " << m->get_packet_type(*it) << "\n";
 						it = to_send_packets_.erase(it);
 					}
@@ -164,7 +176,7 @@ void Host::host_send_message(int HID, int srcport, int dstport){
 			}
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
 
-			if (timecount < 10) continue;	/* does not have to announce content yet... */
+			if (timecount < 10) continue;	/* don't announce content yet... */
 
 			/* scan to see which contents this host has, then announce ... */
 			ostringstream dest;
@@ -276,7 +288,7 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 					outfile.write(payload, size);
 					outfile.close();
 					isWaiting = false;
-					cout << "\n[H" << id_ << "]Content CID = " << CID << " has been delivered! \n";
+					cout << "\n[H" << id_ << "]Content CID = " << CID << " has been delivered! \n" ;
 					break;
 				}
 				}
@@ -313,23 +325,14 @@ int main(){
 	h.assign_router(rid);
 	h.setup_link();
 
+	cout << "Enter request content ID, then wait: \n";
 	while(1){
-		cout << "Request content IDs: ";
+
 		cin >> cid;
 
 		h.request_content(cid);
-		//boost::this_thread::sleep(boost::posix_time::seconds(40));
-
-		/*
-		if(h.isWaiting = false){
-			cout << "Content has been delivered! \n";
+		if(h.isWaiting == true){
+			boost::this_thread::sleep(boost::posix_time::seconds(2));
 		}
-		else{
-			cout << "Content has not been delivered. Please re-try... \n";
-		}
-		*/
-
 	}
-
-
 }

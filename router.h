@@ -49,7 +49,6 @@ public:
 	void assign_nr(int rid); 	/* assign neighbor router */
 	void calc_port_no();
 	void setup_link();
-	void shutdown();
 
 	/* thread functions */
 	void cleaning_tables(int id);

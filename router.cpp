@@ -342,30 +342,30 @@ void Router::router_process_message(){
 				vector<PRTentry>::iterator it = prtcopy.begin();
 				while(it!=prtcopy.end()){
 					if(it->getHID()==HID && it->getCID() == CID){
-						break;
+						int interface_to_send = it->getIID();
+						{
+							/* try to acquire the to send message queue lock, and add this message to the queue*/
+							boost::unique_lock<boost::timed_mutex> lock(* to_send_packets_mutex_ , boost::try_to_lock);
+							bool getLock = lock.owns_lock();
+							if(!getLock){
+								getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
+							}
+							if(getLock){
+								//cout << "[R" << rid_ << "]Push back: Type = " << m->get_packet_type(p) << ". CID = " << m->get_packet_CID(p) << "\n";
+								to_send_packets_.push_back(make_pair(interface_to_send, p));
+							}
+							boost::timed_mutex *mu = lock.release();
+							mu->unlock();
+						}
+						it = prtcopy.erase(it);
 					}
-					it ++;
+					else{
+						it ++;
+					}
 				}
 
-				if(it!= prtcopy.end() ){
-					int interface_to_send = it->getIID();
-					{
-						/* try to acquire the to send message queue lock, and add this message to the queue*/
-						boost::unique_lock<boost::timed_mutex> lock(* to_send_packets_mutex_ , boost::try_to_lock);
-						bool getLock = lock.owns_lock();
-						if(!getLock){
-							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
-						}
-						if(getLock){
-							//cout << "[R" << rid_ << "]Push back: Type = " << m->get_packet_type(p) << ". CID = " << m->get_packet_CID(p) << "\n";
-							to_send_packets_.push_back(make_pair(interface_to_send, p));
-						}
-						boost::timed_mutex *mu = lock.release();
-						mu->unlock();
-					}
-
-				}
-
+				/* update PRT table */
+				prt_.import_table(prtcopy);
 				break;
 			}
 
@@ -384,44 +384,41 @@ void Router::router_process_message(){
 
 void Router::router_receive_message(int RID, int srcport, int dstport){
 	try{
-				//cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
-				//configure receiving port
-				const char* hname = "localhost";
-				Address * my_addr = new Address(hname, (short)dstport);
-				//LossyReceivingPort *my_port = new LossyReceivingPort(0);
-				ReceivingPort *my_port = new ReceivingPort();
-				my_port->setAddress(my_addr);
-				my_port->init();
+		//cout << "[ROUTER RECEIVE THREAD]  From: " << srcport << "(" << (short)srcport << "). To: " << dstport << "(" << (short)dstport << ")\n";
+		//configure receiving port
+		const char* hname = "localhost";
+		Address * my_addr = new Address(hname, (short)dstport);
+		//LossyReceivingPort *my_port = new LossyReceivingPort(0);
+		ReceivingPort *my_port = new ReceivingPort();
+		my_port->setAddress(my_addr);
+		my_port->init();
 
-				Packet *p;
-				while (1)
-				{
-					p = my_port->receivePacket();
-					int IID = (dstport - 10500) % 1000;
-					if(p!=NULL){
-						boost::unique_lock<boost::timed_mutex> lock(* queuemutex_ , boost::try_to_lock);
-						bool getLock = lock.owns_lock();
-						/*
-						if(!getLock){
-							getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
-						}
-						*/
-						if(getLock){
-							message_queue_.push(make_pair(IID, p));
-							//cout << "[R" << RID <<"] Push new message to queue. Messages in queue: " << message_queue_.size() << "\n";
-						}
-						boost::timed_mutex *m = lock.release();
-						m->unlock();
-					}
-					boost::this_thread::sleep(boost::posix_time::seconds(1));
+		Packet *p;
+		while (1)
+		{
+			p = my_port->receivePacket();
+			int IID = (dstport - 10500) % 1000;
+			if(p!=NULL){
+				boost::unique_lock<boost::timed_mutex> lock(* queuemutex_ , boost::try_to_lock);
+				bool getLock = lock.owns_lock();
+				/*
+				if(!getLock){
+					getLock = lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(0.5));
 				}
+				*/
+				if(getLock){
+					message_queue_.push(make_pair(IID, p));
+					//cout << "[R" << RID <<"] Push new message to queue. Messages in queue: " << message_queue_.size() << "\n";
+				}
+				boost::timed_mutex *m = lock.release();
+				m->unlock();
 			}
-			catch(const char *reason ){
-			    cerr << "Exception:" << reason << endl;
-			    exit(-1);
-			}
-}
-
-void Router::shutdown(){
+			boost::this_thread::sleep(boost::posix_time::seconds(1));
+		}
+	}
+	catch(const char *reason ){
+		cerr << "Exception:" << reason << endl;
+		exit(-1);
+	}
 }
 
