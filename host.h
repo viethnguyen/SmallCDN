@@ -36,7 +36,6 @@ public:
 	void assign_content(int cid);
 	void delete_content(int cid);
 	void request_content(int cid);
-	void shutdown();
 	void copycontent(const char *infile, const char *outfile);
 	void setup_link();
 

@@ -1,0 +1,50 @@
+CommNet2 Project 3 
+Design document
+Group 1: Viet Nguyen - Yaqin Tang - Jianqing Liu
+
+Files included in our group's project: 
+- common.h/ common.cpp: These are the two files that provided for the project. We have modified nothing in these two files.
+- newport.h: This is from project 1. Define class mySendingPort. 
+- content.h/ content.cpp: These two files define class Content, which is a helper class for get content names and generate contents. For testing. 
+- message.h/ message.cpp: Define class Message, which is a helper class for managing our three types of packets: REQUEST, RESPONSE and UPDATE. In this class, there are methods for making these three types of packets, as well as getting information from a given packet, such as packet type, content ID, host ID, number of hops, and size of the packet. 
+- rt.h/ rt.cpp: define two classes: class RTentry manages information of each entry in a Routing Table (Content ID, Interface ID, number of Hops, and Time to Expire); class RT manages a routing table, which basically a collection of RTentry instance. 
+Because each RT object will be accessed by several threads, we design every function in this class to be thread-safe. There is a mutex to ensure there is only one thread can access to the routing table at a time. Each thread, when acquiring the lock to access the routing table, should not hold the lock too long. Therefore, in RT class, there are only two member functions, export_table and import_table, which quickly copy the routing table from/to the RT instance. In each thread, all operations on the routing table will be done on the replica, and when done, the thread copy the replica back to the RT instance to reflect the newest status of the routing table.    
+- prt.h/ prt.cpp: define two classes: class PRT entry manages information of each entry in Pending Request Table (Requested content ID, Host ID, Incoming interface ID, and Time to Expire); class PRT manages a pending request table, which basically is a collection of PRTentry instances.
+The implementation of class PRT is the same as class RT above: it ensures thread-safe, and each thread will operate on a PRT replica and then after finishing, it copies back to the PRT instance. 
+- host.h/ host.cpp: defines class Host, which manages all operations that a host can do. 
+	+ when a host with ID = X is initialized, it create a folder hostX/ to simulate the host's initial storage. 
+	+ assign_router(): From the default router ID, calculate the sending port, receiving port of the host and its default router. 
+	+ assign_content(): copy the content to this host's initial storage. For testing.
+	+ delete_content(): delete the content in this host's initial storage. For testing. 
+	+ copycontent(): copy a content file to a new place. For testing. 
+	+ request_content():  make a request packet, then queue it in the sending queue, waiting for the sending thread to send it out. 
+	+ setup_link(): starts two threads, one for sending and one for receiving.
+	+ host_send_message(): this is the function for the sending thread. First, it configures the sending port, based on the calculated port numbers. Then it goes into an infinite loop. In each loop, first it checks the sending queue to see if there is any message that needs to be sent, and sends the message if it exists. Then, after 10 seconds each, it looks into its initial storage to see which contents it has, then make update messages and send to the default router. 
+	+ host_receive_message(): this is the function for the receiving thread. First, it configures the receiving ports, based on the calculated port numbers. Then it goes into an infinite loop, which checks if there is any new packet coming. If a REQUEST packet comes, this thread create a RESPONSE packet with the corresponding ID and queue it into sending queue. If a RESPONSE packet comes, this thread saves the content inside this packet to its storage. We store this new content in place different from the host's initial storage: every new content will be stored in storeX/..., where X is the host ID. 
+- router.h/ router.cpp: defines class Router, which manages all operations that a router can do. 
+	+ set_id()
+	+ assign_host()
+	+ assign_nr(): assign neighbor routers
+	+ calc_port_no(): calculate the port numbers for all the incoming/outgoing interface of this router. 
+	+ setup_link(): starts all sending/receving threads for all incoming/outgoing interface of this router.
+	+ cleaning_tables(): this is for cleaning thread. This thread periodically (5 seconds) update the Time to expire for all entries of Routing table and Pending request table. If an entry's TTE is less than 0, it will be deleted. 
+	+ router_send_message(): this is the function for the sending thread. First, it configures the sending ports, based on the calculated port numbers. In each loop, first it checks if there is any REQUEST/RESPONSE packet pending in the sending queue, and send all of them if they exist. Then, after each 12 seconds, it sends update packets based on its routing table to all its outgoing interface, except the interface to the host.  
+	+ router_receive_message(): this is the function for the receiving thread. First, it configures the receiving ports, based on the calculated port numbers. In each loop, it push the new received packet in the processing queue, for other thread to process it.
+	+ router_process_message(): this is the function for processing the packets from the receiving thread. The processing logic closely follows the specification document.  
+- routercontroller.cpp: automates the network topology reading process.
+- util.cpp: a helper program to quickly generate 256 random content files.
+- networktopo.txt: This is the file used to define network topology. The first line has a number n, the number of routers. The next 2n lines define link property of the n routers. For each router, the first line defines its neighbor routers: the first number is the router ID, the remaining numbers is the IDs of the router that it connects to. The second line defines the host that this router links to: the first number is the router ID, the second number is the ID of the host.
+
+How to run: 
+- First make sure that you have boost_build/ folder in the same folder as the code files. This is the folder that stores all the Boost libraries needed for multithreading.
+- From the command line, run
+	$ make
+- Generate random content files:
+	$./util
+- Run router controller:
+	$./routercontroller
+- Run each host (individually)
+	$./host
+- Copy the content files into each host's initial storage at hostX/ folder, where X is the ID of the host. 
+- At each host terminal, enter the ID of the content that this host wants to retain, then wait for that content to delivered to the host. 
+- The delivered content is saved in folder: storeX/, where X is the ID of the host. 

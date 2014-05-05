@@ -302,10 +302,6 @@ void Host::host_receive_message(int HID, int srcport, int dstport){
 	}
 }
 
-void Host::shutdown(){
-	//signaling all the threads
-}
-
 void Host::setup_link(){
 	boost::thread sthread, rthread;
 	sthread = boost::thread(&Host::host_send_message, this, id_, sendingporttorouter_, routerreceivingport_);

@@ -41,25 +41,6 @@ public:
 	int get_packet_HID(Packet *p);
 	int get_packet_HOPS(Packet *p);
 	int get_packet_size(Packet *p);
-
-
-
-	// OBSOLETE !!
-	//define message format - byte position in the header of each field
-	static const int ID_POS = 0;
-	static const int TYPE_POS = 4;
-	static const int SEQNUM_POS = 6;
-	static const int EOF_POS = 10;
-
-	//'make' functions
-	int get_number_of_packets(){return number_of_packets_;}
-	int get_file_length(){return length_;}
-	Packet *make_init_packet(char* filename);
-	Packet *make_ack_packet(int seqNum);
-	bool prepare_file_to_send(char *filename);
-	Packet *make_data_packet(int seqNum);
-	bool append_data_to_file(char *filename, char *datachunk, int len);
-
 };
 
 #endif /* MESSAGE_H_ */
